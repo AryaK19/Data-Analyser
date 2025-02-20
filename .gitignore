@@ -1,1 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written into a dist/ folder.
+#  On Windows, these files might be stored in the root directory instead.
+_MEI*
+*.pkg
+*.exe
+*.toc
+*.dll
+*.so
+*.dylib
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Others
+*.log
+*.bak
+*~
+
+# Environment files
 .env
