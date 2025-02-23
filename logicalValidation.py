@@ -1,12 +1,11 @@
 import google.generativeai as genai
 import json
-import os
 # import pandas as pd
 # import numpy as np
 # import matplotlib.pyplot as plt
 
 # Set your Gemini API key
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY', ''))
+genai.configure(api_key="AIzaSyCeh14GWGwxSk6yw3Cx9I3Nl4dFJ7f29Fw")
 
 def validate_text_output(expected_output, generated_output):
     """
@@ -26,6 +25,7 @@ def validate_text_output(expected_output, generated_output):
         - If both outputs match, return "Correct ✅".
         - If they are different, return "Incorrect ❌" and explain why.
         - If the format differs but content is similar, mention formatting issues.
+        - always provide your response in below format only
 
         Return JSON response:
         {{
@@ -58,7 +58,7 @@ def validate_code(expected_code, generated_code):
     """
     Validate code correctness by comparing expected and generated code using Gemini AI.
     """
-    model = genai.GenerativeModel("gemini-flash-2.0")
+    model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
         You are a code validation system. Compare the expected and generated code snippets.
 
@@ -74,10 +74,11 @@ def validate_code(expected_code, generated_code):
 
         **Instructions:** 
         - If both code snippets match exactly, return "Correct ✅".
-        - If they are different, return "Incorrect ❌" and explain why.
+        - If there final result is same but they use different approach then return "Correct ✅" and explain the both codes
+        - If they provide different outputs, return "Incorrect ❌" and explain why.
         - If there are minor differences (like variable names, formatting, or comments), mention them separately.
-        - If the logic differs, specify the exact issues and suggest corrections.
-
+        - reason should not not be more than two lines because if it exceeds then json structute corrupts
+        - always provide your response in below json format only
         Return JSON response:
         {{
             "message": "Correct ✅" or "Incorrect ❌",
@@ -103,3 +104,4 @@ def validate_code(expected_code, generated_code):
             "message": "Error ❌",
             "reason": f"Invalid JSON response from Gemini AI. Error: {str(e)}"
         }
+

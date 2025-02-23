@@ -66,7 +66,10 @@ def run_test_cases():
                                 if module['id'] == 'syntax':
                                     analysis_result = is_valid_compile(generated_code)
                                 elif module['id'] == 'logical':
-                                    analysis_result = is_valid_logic(generated_code)
+                                    analysis_result = is_valid_logic(
+                                        generated_code,
+                                        test_case["expected_code"] if test_case["expected_code"].strip() else None
+                                    )
                                 elif module['id'] == 'efficiency':
                                     analysis_result = is_efficient(
                                         generated_code,
