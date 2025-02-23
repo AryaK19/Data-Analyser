@@ -640,7 +640,7 @@ def main():
                 """, unsafe_allow_html=True)
                 st.markdown("### Test Results")
                 for idx, result in enumerate(results):
-                    with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=True):
+                    with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=False):
                     
                         # Status indicator
                         status_color = "#00ff00" if result["status"] == "success" else "#ff0000"
