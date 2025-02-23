@@ -4,6 +4,9 @@ import numpy as np
 from utils.code_generator import generate_pandas_code
 from LLMAnalyser.config import AVAILABLE_MODULES
 from LLMAnalyser.test_case_parser import parse_test_cases_from_json
+from LLMAnalyser.syntax_analyser import is_valid_compile
+from LLMAnalyser.logical_analyser import is_valid_logic
+from LLMAnalyser.efficiency_analyser import is_efficient
 import time
 from styles.main import get_css
 import json
@@ -21,6 +24,8 @@ def init_session_state():
         st.session_state.dragging = None
     if "clear_uploader" not in st.session_state:
         st.session_state.clear_uploader = False
+    if "analysis_results" not in st.session_state:
+        st.session_state.analysis_results = {}
 
 def init_test_cases():
     """Initialize test cases in session state if not present"""
@@ -31,16 +36,19 @@ def init_test_cases():
             "expected_output": ""
         }]
 
-def run_test_cases(has_test_cases, has_modules,uploaded_file ):
-    if not has_test_cases or not has_modules:
-        return
+def run_test_cases():
     """Run all test cases and save results"""
     if not st.session_state.df is not None:
         st.error("Please upload a CSV file first")
         return
 
     results = []
-    for test_case in st.session_state.test_cases:
+    st.session_state.analysis_results = {}
+
+    for idx, test_case in enumerate(st.session_state.test_cases):
+        test_id = f"test_{idx}"
+        st.session_state.analysis_results[test_id] = {}
+        
         with st.spinner(f"Processing query: {test_case['query']}"):
             try:
                 # Generate code from query
@@ -51,16 +59,39 @@ def run_test_cases(has_test_cases, has_modules,uploaded_file ):
                 )
                 
                 if generated_code:
-                    # Create namespace with required imports
-                    namespace = {
-                        'df': st.session_state.df,
-                        'pd': pd,
-                        'np': np,
-                        'result': None
-                    }
+                    # Run each active module's analysis
+                    for module in st.session_state.active_modules:
+                        with st.spinner(f"Running {module['name']} analysis..."):
+                            try:
+                                if module['id'] == 'syntax':
+                                    analysis_result = is_valid_compile(generated_code)
+                                elif module['id'] == 'logical':
+                                    analysis_result = is_valid_logic(generated_code)
+                                elif module['id'] == 'efficiency':
+                                    analysis_result = is_efficient(generated_code)
+                                
+                                # Store analysis result
+                                st.session_state.analysis_results[test_id][module['id']] = {
+                                    'name': module['name'],
+                                    'result': analysis_result,
+                                    'timestamp': time.time()
+                                }
+                            except Exception as e:
+                                st.session_state.analysis_results[test_id][module['id']] = {
+                                    'name': module['name'],
+                                    'error': str(e),
+                                    'timestamp': time.time()
+                                }
                     
                     # Execute generated code
                     try:
+                        namespace = {
+                            'df': st.session_state.df,
+                            'pd': pd,
+                            'np': np,
+                            'result': None
+                        }
+                        
                         clean_code = '\n'.join(
                             line for line in generated_code.split('\n')
                             if line.strip() and not line.strip().startswith('#')
@@ -75,7 +106,8 @@ def run_test_cases(has_test_cases, has_modules,uploaded_file ):
                             "generated_code": generated_code,
                             "expected_output": test_case["expected_output"],
                             "actual_output": actual_output,
-                            "status": "success"
+                            "status": "success",
+                            "analysis_results": st.session_state.analysis_results[test_id]
                         })
                         
                     except Exception as e:
@@ -85,7 +117,8 @@ def run_test_cases(has_test_cases, has_modules,uploaded_file ):
                             "generated_code": generated_code,
                             "expected_output": test_case["expected_output"],
                             "actual_output": f"Error: {str(e)}",
-                            "status": "error"
+                            "status": "error",
+                            "analysis_results": st.session_state.analysis_results[test_id]
                         })
                 
             except Exception as e:
@@ -95,7 +128,8 @@ def run_test_cases(has_test_cases, has_modules,uploaded_file ):
                     "generated_code": "Failed to generate code",
                     "expected_output": test_case["expected_output"],
                     "actual_output": f"Error: {str(e)}",
-                    "status": "error"
+                    "status": "error",
+                    "analysis_results": st.session_state.analysis_results[test_id]
                 })
     
     return results
@@ -412,12 +446,13 @@ def main():
                 return
             
 
-            results = run_test_cases(has_test_cases, has_modules,uploaded_file)
+            results = run_test_cases()
 
             if results:
                 st.markdown("### Test Results")
                 for idx, result in enumerate(results):
                     with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=True):
+                    
                         # Status indicator
                         status_color = "#00ff00" if result["status"] == "success" else "#ff0000"
                         st.markdown(f"""
@@ -432,18 +467,35 @@ def main():
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Code comparison
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("##### Generated Code")
+                        # Module Analysis Results
+                        if "analysis_results" in result:
+                            st.markdown("##### Module Analysis Results")
+                            tabs = st.tabs([analysis['name'] for analysis in result["analysis_results"].values()])
+                            
+                            for tab, (module_id, analysis) in zip(tabs, result["analysis_results"].items()):
+                                with tab:
+                                    if "error" in analysis:
+                                        st.error(f"Error: {analysis['error']}")
+                                    else:
+                                        st.json(analysis["result"])
+                        
+                        # Code comparison in tabs
+                        st.markdown("##### Code & Output")
+                        code_tab1, code_tab2 = st.columns([2, 2])
+                        
+                        with code_tab1:
+                            st.markdown("**Generated Code:**")
                             st.code(result["generated_code"], language="python")
-                            st.markdown("##### Actual Output")
+                            st.markdown("**Actual Output:**")
                             st.code(result["actual_output"])
-                        with col2:
-                            st.markdown("##### Expected Code")
+                        
+                        with code_tab2:
+                            st.markdown("**Expected Code:**")
                             st.code(result["expected_code"], language="python")
-                            st.markdown("##### Expected Output")
+                            st.markdown("**Expected Output:**")
                             st.code(result["expected_output"])
+                        
+                    
 
 if __name__ == "__main__":
     main()
