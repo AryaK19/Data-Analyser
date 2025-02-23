@@ -1,11 +1,6 @@
 import json
 def is_valid_compile(code: str) -> bool:
-    """
-    Checks if the given Python code has valid syntax using the compile() function.
 
-    :param code: Python code as a string
-    :return: True if syntax is valid, False otherwise
-    """
     try:
         compile(code, "<string>", "exec")  # Attempt to compile the code
         explanation = {

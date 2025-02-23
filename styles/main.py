@@ -250,11 +250,7 @@ def get_css():
         transform: translateY(-1px);
     }
     
-    /* Data Preview */
-    .dataframe {
-        border-radius: 10px !important;
-        overflow: hidden;
-    }
+
     
     /* Chat Input */
     .stTextInput > div > div > input {

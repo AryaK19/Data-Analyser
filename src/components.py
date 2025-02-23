@@ -30,7 +30,7 @@ def render_dataset_info(df):
 def render_dataset_preview(df):
     """Render the dataset preview."""
     st.markdown("### Dataset Preview (Top 5 Rows)")
-    st.dataframe(df.head(5), use_container_width=True)
+    st.dataframe(df.head(5))
 
 def render_plot_suggestions(df):
     """Render plot suggestions based on data types."""
@@ -81,7 +81,7 @@ def display_result(result):
         else:
             st.info(result)
     elif isinstance(result, pd.DataFrame):
-        st.dataframe(result, use_container_width=True)
+        st.dataframe(result)
     elif isinstance(result, pd.Series):
         st.write(result.to_frame())
     elif result is not None:

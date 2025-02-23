@@ -29,6 +29,72 @@ def init_test_cases():
             "expected_output": ""
         }]
 
+def run_test_cases():
+    """Run all test cases and save results"""
+    if not st.session_state.df is not None:
+        st.error("Please upload a CSV file first")
+        return
+
+    results = []
+    for test_case in st.session_state.test_cases:
+        with st.spinner(f"Processing query: {test_case['query']}"):
+            try:
+                # Generate code from query
+                generated_code = generate_pandas_code(
+                    test_case['query'], 
+                    context={"df": st.session_state.df}
+                )
+                
+                if generated_code:
+                    # Create namespace with required imports
+                    namespace = {
+                        'df': st.session_state.df,
+                        'pd': pd,
+                        'np': np,
+                        'result': None
+                    }
+                    
+                    # Execute generated code
+                    try:
+                        clean_code = '\n'.join(
+                            line for line in generated_code.split('\n')
+                            if line.strip() and not line.strip().startswith('#')
+                        )
+                        exec(clean_code, namespace)
+                        actual_output = str(namespace.get('result'))
+                        
+                        # Save results
+                        results.append({
+                            "query": test_case["query"],
+                            "expected_code": test_case["expected_code"],
+                            "generated_code": generated_code,
+                            "expected_output": test_case["expected_output"],
+                            "actual_output": actual_output,
+                            "status": "success"
+                        })
+                        
+                    except Exception as e:
+                        results.append({
+                            "query": test_case["query"],
+                            "expected_code": test_case["expected_code"],
+                            "generated_code": generated_code,
+                            "expected_output": test_case["expected_output"],
+                            "actual_output": f"Error: {str(e)}",
+                            "status": "error"
+                        })
+                
+            except Exception as e:
+                results.append({
+                    "query": test_case["query"],
+                    "expected_code": test_case["expected_code"],
+                    "generated_code": "Failed to generate code",
+                    "expected_output": test_case["expected_output"],
+                    "actual_output": f"Error: {str(e)}",
+                    "status": "error"
+                })
+    
+    return results
+
 def render_test_cases():
     """Render test cases input section"""
     with st.expander("Test Cases", expanded=False):
@@ -261,6 +327,8 @@ def remove_module(index):
     if 0 <= index < len(st.session_state.active_modules):
         st.session_state.active_modules.pop(index)
         st.rerun()
+
+
 def main():
     st.set_page_config(
         page_title="Code Analyzer",
@@ -290,59 +358,75 @@ def main():
             
             # Clean data preview
             st.markdown("### Data Preview")
-            st.dataframe(df.head(), use_container_width=True)
-            
-            # Clean dataset info
-            st.markdown("""
-                <div style="
-                    background: #1E1E1E;
-                    border-radius: 8px;
-                    padding: 16px;
-                    margin: 16px 0;
-                ">
-                    <h4 style="color: #E0E0E0; margin: 0 0 12px 0;">Dataset Information</h4>
-                    <table style="width: 100%; color: #E0E0E0;">
-                        <tr><td>Rows:</td><td>{:,}</td></tr>
-                        <tr><td>Columns:</td><td>{:,}</td></tr>
-                        <tr><td>Memory:</td><td>{:.2f} MB</td></tr>
-                    </table>
-                </div>
-            """.format(
-                len(df), 
-                len(df.columns), 
-                df.memory_usage().sum() / 1024 / 1024
-            ), unsafe_allow_html=True)
-            pass
+            st.dataframe(df.head())
 
-  
         render_test_cases()    
 
         with st.expander("Analysis Modules", expanded=False):
             render_module_selection()
 
     with col2:
-        # Query interface with clean design
-        if st.session_state.df is not None:
-            st.markdown("""
-                <div style="
-                    background: #1E1E1E;
-                    border-radius: 8px;
-                    padding: 20px;
-                ">
-                    <h3 style="color: #E0E0E0; margin: 0;">Query Data</h3>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            question = st.text_input("Enter your query")
-            
-            # if question:
-            #     with st.spinner("Generating code..."):
-            #         # ... rest of the code generation logic ...
 
         # Active modules section
         if st.session_state.active_modules:
             render_active_modules()
-            print(st.session_state.test_cases)
+        
+        # Container for run test cases button and validations
+        st.markdown("""<h3 style="color: #E0E0E0; margin: 0 0 15px 0;">Run Test Cases</h3>""", unsafe_allow_html=True)
+        
+        # Show validation messages if needed
+        has_test_cases = any(test_case["query"].strip() for test_case in st.session_state.test_cases)
+        has_modules = len(st.session_state.active_modules) > 0
+        
+        # Run Test Cases button
+        if st.button(
+            "🚀 Run All Test Cases", 
+            use_container_width=True,
+            # disabled=not (has_test_cases and has_modules),
+            type="primary"
+        ):
+            
+
+            if not has_test_cases:
+                st.warning("⚠️ Please add at least one test case with a query")
+                return
+            if not has_modules:
+                st.warning("⚠️ Please add at least one analysis module")
+                return
+            
+
+            results = run_test_cases()
+
+            if results:
+                st.markdown("### Test Results")
+                for idx, result in enumerate(results):
+                    with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=True):
+                        # Status indicator
+                        status_color = "#00ff00" if result["status"] == "success" else "#ff0000"
+                        st.markdown(f"""
+                            <div style="
+                                padding: 10px;
+                                border-radius: 5px;
+                                border-left: 5px solid {status_color};
+                                background-color: {status_color}11;
+                                margin-bottom: 10px;
+                            ">
+                                Status: {result["status"].upper()}
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Code comparison
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("##### Generated Code")
+                            st.code(result["generated_code"], language="python")
+                            st.markdown("##### Actual Output")
+                            st.code(result["actual_output"])
+                        with col2:
+                            st.markdown("##### Expected Code")
+                            st.code(result["expected_code"], language="python")
+                            st.markdown("##### Expected Output")
+                            st.code(result["expected_output"])
 
 if __name__ == "__main__":
     main()
