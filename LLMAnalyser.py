@@ -489,7 +489,80 @@ def main():
                                     elif module_id == 'syntax' :
                                         st.json(analysis["result"])
                                     elif module_id == 'logical':
-                                        st.json(analysis["result"])
+                                        logical_result = analysis["result"]
+                                        
+                                        # Display overall status with appropriate color
+                                        status_color = "#00ff00" if logical_result["status"] == "Valid ✅" else (
+                                            "#ffa500" if logical_result["status"] == "Warning ⚠️" else "#ff0000"
+                                        )
+                                        st.markdown(f"""
+                                            <div style="
+                                                padding: 10px;
+                                                border-radius: 5px;
+                                                border-left: 5px solid {status_color};
+                                                background-color: {status_color}11;
+                                                margin-bottom: 15px;
+                                            ">
+                                                <strong>Status:</strong> {logical_result["status"]}
+                                            </div>
+                                        """, unsafe_allow_html=True)
+                                        
+                                        # AI Validation Results
+                                        st.markdown("##### AI Validation")
+                                        ai_validation = logical_result["analysis"]["ai_validation"]
+                                        message_color = "#00ff00" if ai_validation["message"].startswith("Correct") else "#ff0000"
+                                        st.markdown(f"""
+                                            <div style="
+                                                padding: 10px;
+                                                border-radius: 5px;
+                                                background-color: {message_color}11;
+                                                margin-bottom: 10px;
+                                            ">
+                                                <strong>{ai_validation["message"]}</strong><br>
+                                                {ai_validation["reason"]}
+                                            </div>
+                                        """, unsafe_allow_html=True)
+                                        
+                                        # Similarity Analysis
+                                        st.markdown("##### Similarity Analysis")
+                                        similarity = logical_result["analysis"]["similarity_analysis"]
+                                        
+                                        # Display overall similarity
+                                        st.info(f"Overall Similarity: {similarity['overall_similarity']}")
+                                        
+                                        # Display metrics in columns
+                                        metric_cols = st.columns(3)
+                                        metrics = similarity["metrics"]
+                                        
+                                        with metric_cols[0]:
+                                            st.metric(
+                                                "Levenshtein Distance",
+                                                f"{metrics['Levenshtein Distance']:.2f}",
+                                                help="Edit distance between codes (lower is better)"
+                                            )
+                                        
+                                        with metric_cols[1]:
+                                            st.metric(
+                                                "BLEU Score",
+                                                f"{metrics['BLEU Score (spaCy)']:.2f}",
+                                                help="Text similarity score (higher is better)"
+                                            )
+                                        
+                                        with metric_cols[2]:
+                                            st.metric(
+                                                "Cosine Similarity",
+                                                f"{metrics['Cosine Similarity']:.2f}",
+                                                help="Vector similarity (higher is better)"
+                                            )
+                                        
+                                        # Display suggestions
+                                        if logical_result["suggestions"]:
+                                            st.markdown("##### Suggestions")
+                                            for suggestion in logical_result["suggestions"]:
+                                                if suggestion == "Code logic appears correct":
+                                                    st.success(suggestion)
+                                                else:
+                                                    st.warning(suggestion)
                                     elif module_id == 'efficiency':
                                         efficiency_result = analysis["result"]
                                         
