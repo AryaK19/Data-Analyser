@@ -758,8 +758,35 @@ def main():
 
 
 
-                                    elif module_id == 'syntax' :
-                                        st.json(analysis["result"])
+                                    elif module_id == 'syntax':
+                                        # Get the result values
+                                        status = analysis["result"]["status"]
+                                        message = analysis["result"]["message"]
+                                        suggestion = analysis["result"]["suggestion"]
+                                        
+                                        # Determine status color
+                                        status_color = "#00ff00" if status == "Valid ✅" else "#ff0000"
+                                        
+                                        # Display in a clean UI format
+                                        st.markdown(f"""
+                                            <div style="
+                                                padding: 15px;
+                                                border-radius: 8px;
+                                                background-color: {status_color}11;
+                                                border: 1px solid {status_color};
+                                                margin-bottom: 15px;
+                                            ">
+                                                <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
+                                                    {status}
+                                                </div>
+                                                <div style="margin-bottom: 5px;">
+                                                    {message}
+                                                </div>
+                                                <div style="font-size: 0.9em; opacity: 0.8;">
+                                                    {suggestion}
+                                                </div>
+                                            </div>
+                                        """, unsafe_allow_html=True)
 
 
 
