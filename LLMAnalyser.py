@@ -19,6 +19,8 @@ def init_session_state():
         st.session_state.generated_code = None
     if "dragging" not in st.session_state:
         st.session_state.dragging = None
+    if "clear_uploader" not in st.session_state:
+        st.session_state.clear_uploader = False
 
 def init_test_cases():
     """Initialize test cases in session state if not present"""
@@ -29,7 +31,9 @@ def init_test_cases():
             "expected_output": ""
         }]
 
-def run_test_cases():
+def run_test_cases(has_test_cases, has_modules,uploaded_file ):
+    if not has_test_cases or not has_modules:
+        return
     """Run all test cases and save results"""
     if not st.session_state.df is not None:
         st.error("Please upload a CSV file first")
@@ -42,6 +46,7 @@ def run_test_cases():
                 # Generate code from query
                 generated_code = generate_pandas_code(
                     test_case['query'], 
+                    uploaded_file,
                     context={"df": st.session_state.df}
                 )
                 
@@ -97,122 +102,130 @@ def run_test_cases():
 
 def render_test_cases():
     """Render test cases input section"""
-    with st.expander("Test Cases", expanded=False):
-        st.markdown("### Test Cases Configuration")
-        # Add JSON upload section
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            uploaded_file = st.file_uploader(
-                "Upload test cases from JSON",
-                type=["json"],
-                key="test_cases_upload"
-            )
-        with col2:
-            st.markdown("<div style='height: 38px;'></div>", unsafe_allow_html=True)
-            if uploaded_file is not None:
-                # Initialize message placeholder if not exists
-                if "message_timestamp" not in st.session_state:
-                    st.session_state.message_timestamp = None
-                
-                success, message = parse_test_cases_from_json(uploaded_file)
-                current_time = time.time()
-                
-                # Show message only if within 2 seconds
-                if st.session_state.message_timestamp is None or \
-                   current_time - st.session_state.message_timestamp < 2:
-                    if success:
-                        st.success(message)
-                    else:
-                        st.error(message)
-                    # Update timestamp on first show
-                    if st.session_state.message_timestamp is None:
-                        st.session_state.message_timestamp = current_time
-                        time.sleep(2)
-                        st.rerun()
-                else:
-                    # Reset timestamp after message expires
-                    st.session_state.message_timestamp = None
-        
-        # Render each test case
-        for idx, test_case in enumerate(st.session_state.test_cases):
-            st.markdown(f"###### Test Case {idx + 1}")
-            
-            # Input fields for test case
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown("""
-                    <div style="
-                        padding: 10px 0;
-                        color: #E0E0E0;
-                        font-size: 0.95em;
-                        font-weight: 500;
-                    ">Query:</div>
-                """, unsafe_allow_html=True)
-            with col2:
-                test_case["query"] = st.text_input(
-                    "",
-                    value=test_case["query"],
-                    key=f"query_{idx}",
-                    label_visibility="collapsed"
-                )
-            
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown("""
-                    <div style="
-                        padding: 10px 0;
-                        color: #E0E0E0;
-                        font-size: 0.95em;
-                        font-weight: 500;
-                    ">Expected Code:</div>
-                """, unsafe_allow_html=True)
-            with col2:
-                test_case["expected_code"] = st.text_area(
-                    "",
-                    value=test_case["expected_code"],
-                    key=f"expected_code_{idx}",
-                    height=80,
-                    label_visibility="collapsed"
-                )
-            
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.markdown("""
-                    <div style="
-                        padding: 10px 0;
-                        color: #E0E0E0;
-                        font-size: 0.95em;
-                        font-weight: 500;
-                    ">Expected Output:</div>
-                """, unsafe_allow_html=True)
-            with col2:
-                test_case["expected_output"] = st.text_input(
-                    "",
-                    value=test_case["expected_output"],
-                    key=f"expected_output_{idx}",
-                    label_visibility="collapsed"
-                )
-            
-            if len(st.session_state.test_cases) > 1:
-                col1, col2 = st.columns([3, 1])
-                with col2:
-                    if st.button("Remove", key=f"remove_test_{idx}", use_container_width=True):
-                        st.session_state.test_cases.pop(idx)
-                        st.rerun()
-            
-            st.markdown("<hr style='margin: 20px 0; opacity: 0.8;'>", unsafe_allow_html=True)
-        
-        # Add new test case button with styling
-        st.markdown("""
-            <div style="display: flex; justify-content: center; margin: 20px 0 10px 0;">
-        """, unsafe_allow_html=True)
-        if st.button("Add Test Case", use_container_width=True):
-            st.session_state.test_cases.append({
-                "query": "",
-                "expected_code": "",
-                "expected_output": ""
-            })
+    
+    st.markdown("### Test Cases Configuration")
+    # Add JSON upload section
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        # Check if we should clear the uploader
+        if st.session_state.get("clear_uploader", False):
+            st.session_state.clear_uploader = False
             st.rerun()
+            
+        uploaded_file = st.file_uploader(
+            "Upload test cases from JSON",
+            type=["json"],
+            key="test_cases_upload"
+        )
+        
+    with col2:
+        st.markdown("<div style='height: 38px;'></div>", unsafe_allow_html=True)
+        if uploaded_file is not None:
+            # Initialize message placeholder if not exists
+            if "message_timestamp" not in st.session_state:
+                st.session_state.message_timestamp = None
+            
+            success, message = parse_test_cases_from_json(uploaded_file)
+            current_time = time.time()
+            
+            # Show message only if within 2 seconds
+            if st.session_state.message_timestamp is None or \
+                current_time - st.session_state.message_timestamp < 2:
+                if success:
+                    st.success(message)
+                    # Set flag to clear uploader on next rerun
+                    st.session_state.clear_uploader = True
+                else:
+                    st.error(message)
+                # Update timestamp on first show
+                if st.session_state.message_timestamp is None:
+                    st.session_state.message_timestamp = current_time
+                    time.sleep(2)
+                    st.rerun()
+            else:
+                # Reset timestamp after message expires
+                st.session_state.message_timestamp = None
+    
+    # Render each test case
+    for idx, test_case in enumerate(st.session_state.test_cases):
+        st.markdown(f"###### Test Case {idx + 1}")
+        
+        # Input fields for test case
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("""
+                <div style="
+                    padding: 10px 0;
+                    color: #E0E0E0;
+                    font-size: 0.95em;
+                    font-weight: 500;
+                ">Query:</div>
+            """, unsafe_allow_html=True)
+        with col2:
+            test_case["query"] = st.text_input(
+                "",
+                value=test_case["query"],
+                key=f"query_{idx}",
+                label_visibility="collapsed"
+            )
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("""
+                <div style="
+                    padding: 10px 0;
+                    color: #E0E0E0;
+                    font-size: 0.95em;
+                    font-weight: 500;
+                ">Expected Code:</div>
+            """, unsafe_allow_html=True)
+        with col2:
+            test_case["expected_code"] = st.text_area(
+                "",
+                value=test_case["expected_code"],
+                key=f"expected_code_{idx}",
+                height=80,
+                label_visibility="collapsed"
+            )
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("""
+                <div style="
+                    padding: 10px 0;
+                    color: #E0E0E0;
+                    font-size: 0.95em;
+                    font-weight: 500;
+                ">Expected Output:</div>
+            """, unsafe_allow_html=True)
+        with col2:
+            test_case["expected_output"] = st.text_input(
+                "",
+                value=test_case["expected_output"],
+                key=f"expected_output_{idx}",
+                label_visibility="collapsed"
+            )
+        
+        if len(st.session_state.test_cases) > 1:
+            col1, col2 = st.columns([3, 1])
+            with col2:
+                if st.button("Remove", key=f"remove_test_{idx}", use_container_width=True):
+                    st.session_state.test_cases.pop(idx)
+                    st.rerun()
+        
+        st.markdown("<hr style='margin: 20px 0; opacity: 0.8;'>", unsafe_allow_html=True)
+    
+    # Add new test case button with styling
+    st.markdown("""
+        <div style="display: flex; justify-content: center; margin: 20px 0 10px 0;">
+    """, unsafe_allow_html=True)
+    if st.button("Add Test Case", use_container_width=True):
+        st.session_state.test_cases.append({
+            "query": "",
+            "expected_code": "",
+            "expected_output": ""
+        })
+        st.rerun()
 
 def render_module_selection():
     """Render available modules in a grid layout"""
@@ -357,10 +370,12 @@ def main():
             st.session_state.df = df
             
             # Clean data preview
-            st.markdown("### Data Preview")
-            st.dataframe(df.head())
+            with st.expander(f"### Data Preview (Top 5)", expanded=False):
+                st.dataframe(df.head())
 
-        render_test_cases()    
+
+        with st.expander("Test Cases", expanded=False):
+            render_test_cases()    
 
         with st.expander("Analysis Modules", expanded=False):
             render_module_selection()
@@ -389,13 +404,15 @@ def main():
 
             if not has_test_cases:
                 st.warning("⚠️ Please add at least one test case with a query")
+                print("excited with")
                 return
-            if not has_modules:
+            elif not has_modules:
                 st.warning("⚠️ Please add at least one analysis module")
+                print("excited")
                 return
             
 
-            results = run_test_cases()
+            results = run_test_cases(has_test_cases, has_modules,uploaded_file)
 
             if results:
                 st.markdown("### Test Results")

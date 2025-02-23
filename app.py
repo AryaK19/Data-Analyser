@@ -245,13 +245,14 @@ def main():
                         # Add user message to chat and show immediately
                         add_message("user", question)
                         # st.rerun()  # Force refresh to show user message
+
                         
                         # Process the query in the next run
                         if st.session_state.messages[-1]["role"] == "user":
                             # Get context and generate code
                             context = get_chat_context()
                             with st.spinner("Thinking..."):
-                                generated_code = generate_pandas_code(question, uploaded_file, context=context)
+                                generated_code = generate_pandas_code(question, df, context=context)
                                 
                                 if generated_code:
                                     try:
