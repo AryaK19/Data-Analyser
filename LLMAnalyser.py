@@ -11,6 +11,9 @@ import time
 from styles.main import get_css
 import json
 
+from LLMAnalyser.PDFGenerator import generate_pdf_report
+import base64
+
 def init_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -35,6 +38,15 @@ def init_test_cases():
             "expected_code": "",
             "expected_output": ""
         }]
+
+def get_pdf_download_link(pdf_path):
+    """Generate a download link for the PDF file"""
+    with open(pdf_path, "rb") as f:
+        bytes = f.read()
+        b64 = base64.b64encode(bytes).decode()
+        filename = os.path.basename(pdf_path)
+        return f'<a href="data:application/pdf;base64,{b64}" download="{filename}">📥 Download PDF Report</a>'
+
 
 def run_test_cases():
     """Run all test cases and save results"""
@@ -612,8 +624,7 @@ def main():
                 total_tests = len(results)
                 passed_tests = sum(1 for r in results if (
                     "analysis_results" in r and 
-                    "syntax" in r["analysis_results"] and 
-                    r["analysis_results"]["syntax"]["result"]["status"] == "Valid ✅"
+                    calculate_overall_score(r["analysis_results"])["passed"]
                 ))
                 
                 # Create summary box
@@ -638,6 +649,21 @@ def main():
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
+
+                st.markdown("---")
+                st.markdown("### Download Report")
+                if st.button("Generate PDF Report"):
+                    
+                    with st.spinner("Generating PDF report..."):
+                        pdf_path = generate_pdf_report(results)
+                        if pdf_path:
+                            st.markdown(get_pdf_download_link(pdf_path), unsafe_allow_html=True)
+                            st.success("Report generated successfully!")
+                        else:
+                            st.error("Failed to generate PDF report")
+                st.markdown("---")
+
+
                 st.markdown("### Test Results")
                 for idx, result in enumerate(results):
                     with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=False):

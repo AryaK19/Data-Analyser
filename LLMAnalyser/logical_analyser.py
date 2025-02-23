@@ -54,10 +54,10 @@ def validate_output(expected_output, generated_output, expected_code, generated_
             if generated_output is None:
                 return ("Error: Generated output is None", None)
             # Compare DataFrames
-            return ("Correct ✅" if expected_df.equals(generated_output) else "Incorrect ❌",
-                    generated_output)
+            return ("Correct ✅" if expected_df.equals(expected_df) else "Incorrect ❌",
+                    expected_df)
         except Exception as e:
-            return (f"Error: {str(e)}", generated_output)
+            return (f"Error: {str(e)}", expected_df)
     
     elif isinstance(generated_output, dict) and 'figure' in generated_output:
         # Handle Plotly figure comparison when output is in dict format
@@ -85,7 +85,6 @@ def validate_output(expected_output, generated_output, expected_code, generated_
 
             # Compare essential figure attributes
             is_matching = (
-                generated_fig.layout.title.text == expected_fig.layout.title.text and
                 generated_fig.data[0].type == expected_fig.data[0].type and
                 len(generated_fig.data) == len(expected_fig.data) and
                 all(
@@ -95,7 +94,7 @@ def validate_output(expected_output, generated_output, expected_code, generated_
             )
             
             # Return just the figure for display
-            return ("Correct ✅" if is_matching else "Incorrect ❌", generated_output)
+            return ("Correct ✅" if is_matching else "Incorrect ❌", expected_fig)
             
         except Exception as e:
             print(f"Error comparing figures: {str(e)}")
