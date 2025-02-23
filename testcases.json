@@ -1,0 +1,14 @@
+{
+    "test_cases": [
+        {
+            "query": "Calculate the average age of employees",
+            "expected_code": "df['age'].mean()",
+            "expected_output": "42.5"
+        },
+        {
+            "query": "Count number of employees by department",
+            "expected_code": "df.groupby('department').size()",
+            "expected_output": "{'IT': 10, 'HR': 5, 'Sales': 8}"
+        }
+    ]
+}
