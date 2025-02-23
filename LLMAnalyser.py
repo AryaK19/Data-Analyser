@@ -470,6 +470,21 @@ def get_grade(score: float) -> str:
     elif score >= 60: return "D"
     else: return "F"
 
+
+def display_output(output, key_prefix=""):
+    """Helper function to display different types of outputs with unique keys"""
+    if output is None:
+        st.write("No output")
+        return
+        
+    if isinstance(output, str):
+        st.code(output)
+    elif str(type(output)).startswith("<class 'pandas"):
+        st.dataframe(output, key=f"{key_prefix}_df")
+    elif isinstance(output, dict) and 'figure' in output:
+        st.plotly_chart(output['figure'], use_container_width=True, key=f"{key_prefix}_plot")
+    else:
+        st.write(output)
 def main():
     st.set_page_config(
         page_title="Code Analyzer",
@@ -774,18 +789,25 @@ def main():
                         # Code comparison in tabs
                         st.markdown("##### Code & Output")
                         code_tab1, code_tab2 = st.columns([2, 2])
-                        
+
                         with code_tab1:
                             st.markdown("**Generated Code:**")
                             st.code(result["generated_code"], language="python")
                             st.markdown("**Actual Output:**")
-                            st.code(result["expected_output"] if result["expected_output"] != "{}" else logical_result['analysis']['actual_output'])
-                        
+                            if result["expected_output"] != "{}":
+                                display_output(str(result["actual_output"]), key_prefix=f"gen_{idx}")
+                            else:
+                                display_output(result["actual_output"], key_prefix=f"gen_{idx}")
+
                         with code_tab2:
                             st.markdown("**Expected Code:**")
                             st.code(result["expected_code"], language="python")
                             st.markdown("**Expected Output:**")
-                            st.code(result["expected_output"] if result["expected_output"] != "{}" else logical_result['analysis']['actual_output'])
+                            if result["expected_output"] != "{}":
+                                display_output(result["expected_output"], key_prefix=f"exp_{idx}")
+                            else:
+                                actual_output = logical_result['analysis']['actual_output']
+                                display_output(actual_output, key_prefix=f"exp_{idx}")
                         
                     
 

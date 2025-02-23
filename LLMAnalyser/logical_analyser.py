@@ -11,6 +11,8 @@ nlp = spacy.load("en_core_web_sm")
 from dotenv import load_dotenv
 import os
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
@@ -55,11 +57,53 @@ def validate_output(expected_output, generated_output, expected_code, generated_
             return ("Correct ✅" if expected_df.equals(generated_output) else "Incorrect ❌",
                     generated_output)
         except Exception as e:
-            return (f"Error: {str(e)}",generated_output)
+            return (f"Error: {str(e)}", generated_output)
+    
+    elif isinstance(generated_output, dict) and 'figure' in generated_output:
+        # Handle Plotly figure comparison when output is in dict format
+        try:
+            namespace = {
+                'df': df,
+                'pd': pd,
+                'np': np,
+                'result': None,
+                'px': px,
+                'go': go
+            }
+            
+            exec(expected_code, namespace)
+            expected_output = namespace.get('result')
+            
+            if expected_output is None:
+                return ("Error: Expected figure not produced", None)
+            if generated_output is None:
+                return ("Error: Generated figure is None", None)
+
+            # Extract figure objects for comparison
+            generated_fig = generated_output['figure']
+            expected_fig = expected_output.get('figure') if isinstance(expected_output, dict) else expected_output
+
+            # Compare essential figure attributes
+            is_matching = (
+                generated_fig.layout.title.text == expected_fig.layout.title.text and
+                generated_fig.data[0].type == expected_fig.data[0].type and
+                len(generated_fig.data) == len(expected_fig.data) and
+                all(
+                    len(t1.x) == len(t2.x) and len(t1.y) == len(t2.y)
+                    for t1, t2 in zip(generated_fig.data, expected_fig.data)
+                )
+            )
+            
+            # Return just the figure for display
+            return ("Correct ✅" if is_matching else "Incorrect ❌", generated_output)
+            
+        except Exception as e:
+            print(f"Error comparing figures: {str(e)}")
+            return (f"Error comparing figures: {str(e)}", generated_output.get('figure'))
     
     else:
-        
-        return "Unsupported output format",generated_output
+        print(f"Unsupported output type: {type(generated_output)}")
+        return ("Unsupported output format", generated_output)
 
 def validate_code(expected_code, generated_code):
     """
@@ -86,17 +130,23 @@ def validate_code(expected_code, generated_code):
         - If there are minor differences (like variable names, formatting, or comments), mention them separately.
         - reason should not not be more than two lines because if it exceeds then json structute corrupts
         - always provide your response in below json format only
-        Return JSON response:
+        Return ONLY THE BELOW JSON response:
         {{
             "message": "Correct ✅" or "Incorrect ❌",
             "reason": "Explanation of differences"
         }}
     """
 
-    response = model.generate_content(prompt)
-
-    # 🛑 Debug: Print raw response
-    print("Gemini AI Response:", response.text)
+    response = model.generate_content(
+        prompt,
+        generation_config={
+            "temperature": 0.1,
+            "top_p": 0.9,      
+            "top_k": 40,      
+            "max_output_tokens": 1024
+        },
+        safety_settings={"HARM_CATEGORY_DANGEROUS": "BLOCK_NONE"}
+    )
 
     if not response.text:
         return {
@@ -104,12 +154,40 @@ def validate_code(expected_code, generated_code):
             "reason": "Gemini AI returned an empty response."
         }
 
+    # Clean and parse the response
     try:
-        return json.loads(response.text)
+        # Remove any leading/trailing whitespace and markdown formatting
+        cleaned_text = response.text.strip()
+        
+        # If response is wrapped in ```json ... ```, extract just the JSON part
+        if cleaned_text.startswith("```json"):
+            cleaned_text = cleaned_text[7:].strip()
+        if cleaned_text.endswith("```"):
+            cleaned_text = cleaned_text[:-3].strip()
+            
+        # Remove any potential markdown formatting
+        cleaned_text = cleaned_text.replace("```", "").strip()
+        
+        # Parse the cleaned JSON
+        result = json.loads(cleaned_text)
+        
+        # Validate required fields
+        if not all(key in result for key in ["message", "reason"]):
+            raise ValueError("Missing required fields in JSON response")
+            
+        return result
+        
     except json.JSONDecodeError as e:
+        print(f"JSON Parse Error: {str(e)}\nRaw Response: {response.text}")
         return {
             "message": "Error ❌",
-            "reason": f"Invalid JSON response from Gemini AI. Error: {str(e)}"
+            "reason": "Failed to parse Gemini AI response as JSON"
+        }
+    except Exception as e:
+        print(f"Unexpected Error: {str(e)}\nRaw Response: {response.text}")
+        return {
+            "message": "Error ❌",
+            "reason": f"Error processing Gemini AI response: {str(e)}"
         }
 
 
