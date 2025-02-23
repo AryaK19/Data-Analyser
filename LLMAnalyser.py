@@ -608,6 +608,36 @@ def main():
             print(results)
 
             if results:
+                # Calculate summary statistics
+                total_tests = len(results)
+                passed_tests = sum(1 for r in results if (
+                    "analysis_results" in r and 
+                    "syntax" in r["analysis_results"] and 
+                    r["analysis_results"]["syntax"]["result"]["status"] == "Valid ✅"
+                ))
+                
+                # Create summary box
+                summary_color = "#00ff00" if passed_tests == total_tests else "#ff0000"
+                st.markdown(f"""
+                    <div style="
+                        padding: 15px;
+                        border-radius: 8px;
+                        background-color: {summary_color}11;
+                        border: 1px solid {summary_color};
+                        text-align: center;
+                        margin-bottom: 20px;
+                    ">
+                        <div style="font-size: 1.4em; font-weight: bold; margin-bottom: 5px;">
+                            Test Cases Summary
+                        </div>
+                        <div style="font-size: 1.2em;">
+                            {passed_tests} / {total_tests} Test Cases Passed
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">
+                            {round(passed_tests/total_tests * 100)}% Success Rate
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
                 st.markdown("### Test Results")
                 for idx, result in enumerate(results):
                     with st.expander(f"Test Case {idx + 1}: {result['query']}", expanded=True):
