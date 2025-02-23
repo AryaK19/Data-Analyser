@@ -1,8 +1,9 @@
-import json
+
 def is_valid_compile(code: str) -> bool:
 
     try:
-        compile(code, "<string>", "exec")  # Attempt to compile the code
+        result = compile(code, "<string>", "exec") 
+        print("The result is",result) # Attempt to compile the code
         explanation = {
             "status": "Valid ✅",
             "message": "The given Python code has correct syntax and can be executed without errors.",

@@ -75,7 +75,7 @@ def render_chat_message(message: Dict):
                     # Display the data if available
                     if "data" in message["result"]:
                         st.markdown("**Data Summary:**")
-                        st.dataframe(message["result"]["data"], use_container_width=True)
+                        st.dataframe(message["result"]["data"])
                 
                 # Handle string results
                 elif isinstance(message["result"], str):
@@ -84,7 +84,7 @@ def render_chat_message(message: Dict):
                 # Handle DataFrame results
                 elif str(type(message["result"])).startswith("<class 'pandas"):
                     st.markdown("**Data Preview:**")
-                    st.dataframe(message["result"], use_container_width=True)
+                    st.dataframe(message["result"])
                 
                 # Handle other types of results
                 else:

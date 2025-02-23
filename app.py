@@ -254,6 +254,7 @@ def main():
                             with st.spinner("Thinking..."):
                                 generated_code = generate_pandas_code(question, df, context=context)
                                 
+                                
                                 if generated_code:
                                     try:
                                         # Create namespace with imports

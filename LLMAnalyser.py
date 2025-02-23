@@ -68,7 +68,12 @@ def run_test_cases():
                                 elif module['id'] == 'logical':
                                     analysis_result = is_valid_logic(generated_code)
                                 elif module['id'] == 'efficiency':
-                                    analysis_result = is_efficient(generated_code)
+                                    analysis_result = is_efficient(
+                                        generated_code,
+                                        test_case["expected_code"] if test_case["expected_code"].strip() else None,
+                                        st.session_state.df  # Pass the DataFrame
+                                    )
+                                    print(analysis_result)
                                 
                                 # Store analysis result
                                 st.session_state.analysis_results[test_id][module['id']] = {
@@ -448,6 +453,8 @@ def main():
 
             results = run_test_cases()
 
+            print(results)
+
             if results:
                 st.markdown("### Test Results")
                 for idx, result in enumerate(results):
@@ -476,8 +483,47 @@ def main():
                                 with tab:
                                     if "error" in analysis:
                                         st.error(f"Error: {analysis['error']}")
-                                    else:
+                                    elif module_id == 'syntax' :
                                         st.json(analysis["result"])
+                                    elif module_id == 'logical':
+                                        st.json(analysis["result"])
+                                    elif module_id == 'efficiency':
+                                        efficiency_result = analysis["result"]
+                                        
+                    
+                                        # Display time complexity
+                                        st.markdown("**Time Complexity Analysis:**")
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.info(f"Generated Code: {efficiency_result['generated_code']['time_complexity']}")
+                                        with col2:
+                                            if 'test_code' in efficiency_result:
+                                                st.info(f"Expected Code: {efficiency_result['test_code']['time_complexity']}")
+                                        
+                                        # Display execution metrics
+                                        st.markdown("**Performance Metrics:**")
+                                        metrics = st.columns(3)
+                                        with metrics[0]:
+                                            st.metric(
+                                                "Operation Count", 
+                                                efficiency_result['generated_code']['operation_count']
+                                            )
+                                        with metrics[1]:
+                                            st.metric(
+                                                "Execution Time", 
+                                                efficiency_result['generated_code']['execution_time']
+                                            )
+                                        with metrics[2]:
+                                            st.metric(
+                                                "Memory Usage", 
+                                                efficiency_result['generated_code']['memory_usage']
+                                            )
+                                        
+                                        # Display comparison notes
+                                        if efficiency_result["comparison"]["notes"]:
+                                            st.markdown("**Optimization Notes:**")
+                                            for note in efficiency_result["comparison"]["notes"]:
+                                                st.warning(note)
                         
                         # Code comparison in tabs
                         st.markdown("##### Code & Output")

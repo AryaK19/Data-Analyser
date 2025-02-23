@@ -96,7 +96,7 @@ def generate_pandas_code(question, df, include_viz=True, context=None):
     7. Keep code concise
     8. The code should be directly executable - No samples or examples
     9. If user asks general questions , reply with correct general output. (for example - user:"hi how are you", python_code(ouput): result = "am fine how are you ")
-    10. THE END RESULTS IF IS A STRING MUST BE FORMATED NICELY .IF RESULT IS A DATAFRAME MUST BE FORMATED AS result = df.(any operation)
+    
     {viz_hint if include_viz else ''}
     """
     
@@ -115,7 +115,7 @@ def generate_pandas_code(question, df, include_viz=True, context=None):
         generation_config=generation_config
     )
 
-    print(response.text)
-    
+    cleaned_code = clean_code(response.text.strip())
+    print(str(cleaned_code))
     # Clean up the generated code
-    return clean_code(response.text.strip())
+    return cleaned_code
