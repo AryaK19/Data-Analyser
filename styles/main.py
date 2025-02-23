@@ -195,19 +195,171 @@ def get_css():
     .stChatMessage {
         margin-bottom: 15px;
     }
-        .chat-container {
-            background-color: #0e1117;
-            border: 1px solid #333;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 1rem;
-            color: #fafafa;
-            height: calc(100vh - 200px);
-            display: flex;
-            flex-direction: column;
-            position: sticky;
+    .chat-container {
+        background-color: #0e1117;
+        border: 1px solid #333;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 1rem;
+        color: #fafafa;
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+    }
+    /* Module Cards */
+    .module-card {
+        background: #1E1E1E;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        transition: all 0.3s;
+    }
+    .module-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
     
+    /* Pipeline */
+    .pipeline-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 20px 0;
+        overflow-x: auto;
+    }
+    
+    /* Results */
+    .stExpander {
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Custom Buttons */
+    .custom-button {
+        background-color: #2C3E50;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .custom-button:hover {
+        background-color: #34495E;
+        transform: translateY(-1px);
+    }
+    
+    /* Data Preview */
+    .dataframe {
+        border-radius: 10px !important;
+        overflow: hidden;
+    }
+    
+    /* Chat Input */
+    .stTextInput > div > div > input {
+        border-radius: 25px !important;
+    }
+    
+    /* Remove Streamlit Branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+/* Clean, minimal theme */
+        .stApp {
+            background-color: #121212;
+        }
         
-        </style>
+        .main {
+            padding: 1rem 2rem !important;
+        }
+        
+        /* Headers */
+        h1, h2, h3, h4, h5, h6 {
+            color: #E0E0E0 !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.5px !important;
+        }
+        
+        /* Cards and containers */
+        .stDataFrame {
+            background: #1E1E1E;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        /* Input fields */
+        .stTextInput > div > div > input {
+            background: #2C2C2C !important;
+            border: 1px solid #404040 !important;
+            border-radius: 6px !important;
+            color: #E0E0E0 !important;
+            padding: 8px 12px !important;
+        }
+        
+        /* Buttons */
+        .stButton > button {
+            background: #404040 !important;
+            color: #E0E0E0 !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 8px 16px !important;
+            transition: background 0.3s !important;
+        }
+        
+        .stButton > button:hover {
+            background: #4A4A4A !important;
+        }
+        
+        /* Expanders */
+        .streamlit-expanderHeader {
+            background: #1E1E1E !important;
+            border-radius: 6px !important;
+            color: #E0E0E0 !important;
+        }
+        
+        /* Remove default decoration */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        
+        /* Module cards */
+        .module-card {
+            background: #1E1E1E;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 8px 0;
+            transition: all 0.2s;
+        }
+        
+        /* Pipeline visualization */
+        .pipeline-arrow {
+            color: #404040;
+            font-family: monospace;
+            text-align: center;
+            margin: 8px 0;
+        }
+        
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1E1E1E;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4A4A4A;
+        }
+
+        
+</style>
     """

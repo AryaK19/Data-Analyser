@@ -251,7 +251,7 @@ def main():
                             # Get context and generate code
                             context = get_chat_context()
                             with st.spinner("Thinking..."):
-                                generated_code = generate_pandas_code(question, list(df.columns), context=context)
+                                generated_code = generate_pandas_code(question, uploaded_file, context=context)
                                 
                                 if generated_code:
                                     try:

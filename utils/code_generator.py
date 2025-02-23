@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
+import pandas as pd
 
 load_dotenv()
 
@@ -49,9 +50,14 @@ def clean_code(code):
     
     return code
 
-def generate_pandas_code(question, columns, include_viz=True, context=None):
+def generate_pandas_code(question, uploaded_file, include_viz=True, context=None):
     """Generate pandas code using Google's Gemini API based on user question and available columns."""
-    
+
+
+    df = pd.read_csv(uploaded_file)
+    columns = list(df.columns)
+
+
     viz_hint = """
     For visualization requests:
     - Always include 'from utils.visualization import create_plot' when using create_plot
