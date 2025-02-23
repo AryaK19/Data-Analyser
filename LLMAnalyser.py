@@ -46,7 +46,7 @@ def run_test_cases(has_test_cases, has_modules,uploaded_file ):
                 # Generate code from query
                 generated_code = generate_pandas_code(
                     test_case['query'], 
-                    uploaded_file,
+                    st.session_state.df,
                     context={"df": st.session_state.df}
                 )
                 

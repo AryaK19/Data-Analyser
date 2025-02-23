@@ -52,9 +52,7 @@ def clean_code(code):
 
 def generate_pandas_code(question, df, include_viz=True, context=None):
     """Generate pandas code using Google's Gemini API based on user question and available columns."""
-
-    # df = pd.read_csv(uploaded_file)
-    print(f"Generating code for pdpdp: {df}")
+    
     columns = list(df.columns)
 
 
