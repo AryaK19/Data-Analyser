@@ -166,19 +166,19 @@ def is_efficient(generated_code: str, test_code: str = None, df: pd.DataFrame = 
             }
             
             # Compare and add notes
-            if generated_ops > test_ops :
+            if generated_ops > test_ops*2 :
                 results["comparison"]["is_efficient"] = False
                 results["comparison"]["notes"].append(
                     "Generated code has significantly more operations"
                 )
             
-            if generated_time > test_time :
+            if generated_time > test_time*2 :
                 results["comparison"]["is_efficient"] = False
                 results["comparison"]["notes"].append(
                     "Generated code is significantly slower"
                 )
             
-            if generated_memory > test_memory :
+            if generated_memory > test_memory*2 :
                 results["comparison"]["is_efficient"] = False
                 results["comparison"]["notes"].append(
                     "Generated code uses significantly more memory"

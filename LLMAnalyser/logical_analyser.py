@@ -10,6 +10,8 @@ import warnings
 nlp = spacy.load("en_core_web_sm")
 from dotenv import load_dotenv
 import os
+import pandas as pd
+
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
@@ -18,52 +20,46 @@ load_dotenv()
 # Configure Google Gemini API
 genai.configure(api_key=os.getenv('GOOGLE_API_KEY', ''))
 
-def validate_text_output(expected_output, generated_output):
+def validate_output(expected_output, generated_output, expected_code, generated_code, df):
     """
-    Validate text/table-based output using Gemini AI.
+    Validate output correctness by comparing expected and generated output.
+    Returns tuple of (validation_result, actual_output)
     """
-    model = genai.GenerativeModel("gemini-pro")
-    prompt = f"""
-        You are a validation system. Compare the expected and generated outputs.
-
-        **Expected Output:** 
-        {expected_output}
-
-        **Generated Output:** 
-        {generated_output}
-
-        **Instructions:** 
-        - If both outputs match, return "Correct ✅".
-        - If they are different, return "Incorrect ❌" and explain why.
-        - If the format differs but content is similar, mention formatting issues.
-        - always provide your response in below format only
-
-        Return JSON response:
-        {{
-            "message": "Correct ✅" or "Incorrect ❌",
-            "reason": "Explanation"
-        }}
-    """
-
-    response = model.generate_content(prompt)
-
-    # 🛑 Debug: Print raw response
-    print("Gemini AI Response:", response.text)
-
-    if not response.text:
-        return {
-            "message": "Error ❌",
-            "reason": "Gemini AI returned an empty response."
+    if expected_output != "{}":
+        # Simple string-based validation
+        return ("Correct ✅" if str(expected_output) == str(generated_output) else "Incorrect ❌", 
+                generated_output)
+    
+    elif str(type(generated_output)).startswith("<class 'pandas"):
+        # Execute expected_code to get the expected DataFrame
+        namespace = {
+            'df': df,
+            'pd': pd,
+            'np': np,
+            'result': None
         }
-
-    try:
-        return json.loads(response.text)
-    except json.JSONDecodeError as e:
-        return {
-            "message": "Error ❌",
-            "reason": f"Invalid JSON response from Gemini AI. Error: {str(e)}"
-        }
-
+        
+        # Clean and execute code
+        clean_code = '\n'.join(
+            line for line in expected_code.split('\n')
+            if line.strip() and not line.strip().startswith('#')
+        )
+        try:
+            exec(clean_code, namespace)
+            expected_df = namespace.get('result')
+            if expected_df is None:
+                return ("Error: Expected dataframe not produced", None)
+            if generated_output is None:
+                return ("Error: Generated output is None", None)
+            # Compare DataFrames
+            return ("Correct ✅" if expected_df.equals(generated_output) else "Incorrect ❌",
+                    generated_output)
+        except Exception as e:
+            return (f"Error: {str(e)}",generated_output)
+    
+    else:
+        
+        return "Unsupported output format",generated_output
 
 def validate_code(expected_code, generated_code):
     """
@@ -159,7 +155,11 @@ def calculate_similarity_metrics(expected_code, generated_code):
         "Cosine Similarity": cosine_sim
     }
 
-def is_valid_logic(generated_code: str, expected_code: str = None) -> dict:
+def is_valid_logic(generated_code: str, 
+                   expected_code: str = None, 
+                   expected_output: str = "{}", 
+                   generated_output: str = None, 
+                   df: pd.DataFrame = None) -> dict:
     """
     Analyze logical correctness of generated code by comparing with expected code
     using multiple validation approaches.
@@ -215,13 +215,19 @@ def is_valid_logic(generated_code: str, expected_code: str = None) -> dict:
         )
         results["overall_similarity"] = round(overall_similarity * 100, 2)  # Convert to percentage
 
+
+        # 3.3 Output validation using validate_output
+        out_val, actual_output = validate_output(expected_output, generated_output, expected_code, generated_code, df)
+        results["output_validation"] = out_val
+        results["actual_output"] = actual_output
+
         # 4. Determine status and suggestions
         if ai_validation.get("message", "").startswith("Incorrect"):
             results["status"] = "Invalid ❌"
             results["suggestions"].append(ai_validation.get("reason", "Check code logic"))
         
         # Add similarity-based suggestions
-        if overall_similarity < 0.7:  # Less than 70% similar
+        if overall_similarity < 0.6:  # Less than 70% similar
             results["status"] = "Invalid ❌"
             results["suggestions"].append("Code structure differs significantly from expected")
         elif overall_similarity < 0.9:  # Less than 90% similar
@@ -237,11 +243,13 @@ def is_valid_logic(generated_code: str, expected_code: str = None) -> dict:
                 "similarity_analysis": {
                     "metrics": results["similarity_metrics"],
                     "overall_similarity": f"{results['overall_similarity']}%"
-                }
+                },
+                "output_validation": results["output_validation"],
+                "actual_output": results["actual_output"]
+
             },
             "suggestions": results["suggestions"] if results["suggestions"] else ["Code logic appears correct"]
         }
-
     except Exception as e:
         return {
             "status": "Error ❌",

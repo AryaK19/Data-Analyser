@@ -57,42 +57,9 @@ def run_test_cases():
                     st.session_state.df,
                     context={"df": st.session_state.df}
                 )
+                try:
                 
-                if generated_code:
-                    # Run each active module's analysis
-                    for module in st.session_state.active_modules:
-                        with st.spinner(f"Running {module['name']} analysis..."):
-                            try:
-                                if module['id'] == 'syntax':
-                                    analysis_result = is_valid_compile(generated_code)
-                                elif module['id'] == 'logical':
-                                    analysis_result = is_valid_logic(
-                                        generated_code,
-                                        test_case["expected_code"] if test_case["expected_code"].strip() else None
-                                    )
-                                elif module['id'] == 'efficiency':
-                                    analysis_result = is_efficient(
-                                        generated_code,
-                                        test_case["expected_code"] if test_case["expected_code"].strip() else None,
-                                        st.session_state.df  # Pass the DataFrame
-                                    )
-                                    print(analysis_result)
-                                
-                                # Store analysis result
-                                st.session_state.analysis_results[test_id][module['id']] = {
-                                    'name': module['name'],
-                                    'result': analysis_result,
-                                    'timestamp': time.time()
-                                }
-                            except Exception as e:
-                                st.session_state.analysis_results[test_id][module['id']] = {
-                                    'name': module['name'],
-                                    'error': str(e),
-                                    'timestamp': time.time()
-                                }
-                    
-                    # Execute generated code
-                    try:
+                    if generated_code:
                         namespace = {
                             'df': st.session_state.df,
                             'pd': pd,
@@ -105,7 +72,46 @@ def run_test_cases():
                             if line.strip() and not line.strip().startswith('#')
                         )
                         exec(clean_code, namespace)
-                        actual_output = str(namespace.get('result'))
+                        actual_output = namespace.get('result')
+
+                        
+                        # Run each active module's analysis
+                        for module in st.session_state.active_modules:
+                            with st.spinner(f"Running {module['name']} analysis..."):
+                                try:
+                                    if module['id'] == 'syntax':
+                                        analysis_result = is_valid_compile(generated_code)
+                                    elif module['id'] == 'logical':
+                                        analysis_result = is_valid_logic(
+                                            generated_code,
+                                            test_case["expected_code"] if test_case["expected_code"].strip() else None,
+                                            test_case["expected_output"],
+                                            actual_output,
+                                            st.session_state.df
+                                        )
+                                    elif module['id'] == 'efficiency':
+                                        analysis_result = is_efficient(
+                                            generated_code,
+                                            test_case["expected_code"] if test_case["expected_code"].strip() else None,
+                                            st.session_state.df  # Pass the DataFrame
+                                        )
+                                        print(analysis_result)
+                                    
+                                    # Store analysis result
+                                    st.session_state.analysis_results[test_id][module['id']] = {
+                                        'name': module['name'],
+                                        'result': analysis_result,
+                                        'timestamp': time.time()
+                                    }
+                                except Exception as e:
+                                    st.session_state.analysis_results[test_id][module['id']] = {
+                                        'name': module['name'],
+                                        'error': str(e),
+                                        'timestamp': time.time()
+                                }
+                    
+                    # Execute generated code
+                    
                         
                         # Save results
                         results.append({
@@ -118,16 +124,16 @@ def run_test_cases():
                             "analysis_results": st.session_state.analysis_results[test_id]
                         })
                         
-                    except Exception as e:
-                        results.append({
-                            "query": test_case["query"],
-                            "expected_code": test_case["expected_code"],
-                            "generated_code": generated_code,
-                            "expected_output": test_case["expected_output"],
-                            "actual_output": f"Error: {str(e)}",
-                            "status": "error",
-                            "analysis_results": st.session_state.analysis_results[test_id]
-                        })
+                except Exception as e:
+                    results.append({
+                        "query": test_case["query"],
+                        "expected_code": test_case["expected_code"],
+                        "generated_code": generated_code,
+                        "expected_output": test_case["expected_output"],
+                        "actual_output": f"Error: {str(e)}",
+                        "status": "error",
+                        "analysis_results": st.session_state.analysis_results[test_id]
+                    })
                 
             except Exception as e:
                 results.append({
@@ -384,6 +390,86 @@ def remove_module(index):
         st.rerun()
 
 
+def calculate_overall_score(analysis_results: dict) -> dict:
+    """
+    Calculate overall test case score based on all analysis module results,
+    with output validation as a critical factor
+    """
+    total_score = 0
+    max_score = 0
+    
+    # Updated weights to include output validation importance
+    analysis_weights = {
+        'syntax': 0.2,     # 20% weight for syntax
+        'logical': 0.3,    # 30% weight for logical correctness
+        'efficiency': 0.2, # 20% weight for efficiency
+    }
+    
+    module_scores = {}
+    
+    for module_id, analysis in analysis_results.items():
+        if 'error' in analysis:
+            module_scores[module_id] = 0
+            continue
+            
+        result = analysis['result']
+        weight = analysis_weights.get(module_id, 0)
+        max_score += weight * 100
+        
+        if module_id == 'syntax':
+            # Syntax score: Valid = 100, Invalid = 0
+            score = 100 if result['status'] == 'Valid ✅' else 0
+            module_scores[module_id] = score * weight
+            
+        elif module_id == 'logical':
+            # Get output validation result
+            print("ajsdhkajshdjlkasd",result)
+            output_validation = result['analysis'].get('output_validation', 'N/A')
+            output_score = 100 if output_validation == 'Correct ✅' else 0
+            module_scores['output'] = output_score 
+            
+            # Calculate logical score based on similarity and status
+            base_score = float(result['analysis']['similarity_analysis']['overall_similarity'].rstrip('%'))
+            status_multiplier = 1.0 if result['status'] == 'Valid ✅' else (
+                0.7 if result['status'] == 'Warning ⚠️' else 0.3
+            )
+            score = base_score * status_multiplier
+            module_scores[module_id] = score * weight
+            
+        elif module_id == 'efficiency':
+            # Efficiency score based on comparison results
+            score = 100 if result['comparison']['is_efficient'] else (
+                50 if len(result['comparison']['notes']) <= 1 else 30
+            )
+            module_scores[module_id] = score * weight
+        
+        total_score += module_scores[module_id]
+    
+    # Add output score to total if present
+    if 'output' in module_scores:
+        total_score += module_scores['output']
+    
+    # Calculate final percentage
+    final_score = (total_score / max_score * 100) if max_score > 0 else 0
+    
+    # Determine if passed based on both final score and output validation
+    passed = final_score >= 70 and module_scores.get('output', 0) > 0
+    
+    return {
+        "passed": passed,  # Must have both good overall score AND correct output
+        "score": round(final_score, 2),
+        "module_scores": module_scores,
+        "grade": get_grade(final_score)
+    }
+
+def get_grade(score: float) -> str:
+    """Convert numerical score to letter grade"""
+    if score >= 90: return "A"
+    elif score >= 80: return "B"
+    elif score >= 70: return "C"
+    elif score >= 60: return "D"
+    else: return "F"
+
 def main():
     st.set_page_config(
         page_title="Code Analyzer",
@@ -446,11 +532,11 @@ def main():
 
             if not has_test_cases:
                 st.warning("⚠️ Please add at least one test case with a query")
-                print("excited with")
+                
                 return
             elif not has_modules:
                 st.warning("⚠️ Please add at least one analysis module")
-                print("excited")
+                
                 return
             
 
@@ -479,6 +565,70 @@ def main():
                         
                         # Module Analysis Results
                         if "analysis_results" in result:
+
+                            overall_score = calculate_overall_score(result["analysis_results"])
+    
+                            # Display overall score with appropriate color
+                            score_color = "#00ff00" if overall_score["passed"] else "#ff0000"
+                            grade_color = {
+                                "A": "#00ff00",
+                                "B": "#80ff00",
+                                "C": "#ffff00",
+                                "D": "#ffa500",
+                                "F": "#ff0000"
+                            }.get(overall_score["grade"], "#ff0000")
+                            
+                            st.markdown("##### Overall Test Case Results")
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.markdown(f"""
+                                    <div style="
+                                        padding: 10px;
+                                        border-radius: 5px;
+                                        background-color: {score_color}22;
+                                        border: 1px solid {score_color};
+                                        text-align: center;
+                                    ">
+                                        <div style="font-size: 1.2em; font-weight: bold;">
+                                            {overall_score["score"]}%
+                                        </div>
+                                        <div>Overall Score</div>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                            
+                            with col2:
+                                st.markdown(f"""
+                                    <div style="
+                                        padding: 10px;
+                                        border-radius: 5px;
+                                        background-color: {grade_color}22;
+                                        border: 1px solid {grade_color};
+                                        text-align: center;
+                                    ">
+                                        <div style="font-size: 1.2em; font-weight: bold;">
+                                            Grade {overall_score["grade"]}
+                                        </div>
+                                        <div>Performance Grade</div>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                            
+                            with col3:
+                                st.markdown(f"""
+                                    <div style="
+                                        padding: 10px;
+                                        border-radius: 5px;
+                                        background-color: {score_color}22;
+                                        border: 1px solid {score_color};
+                                        text-align: center;
+                                    ">
+                                        <div style="font-size: 1.2em; font-weight: bold;">
+                                            {"PASSED" if overall_score["passed"] else "FAILED"}
+                                        </div>
+                                        <div>Test Status</div>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
                             st.markdown("##### Module Analysis Results")
                             tabs = st.tabs([analysis['name'] for analysis in result["analysis_results"].values()])
                             
@@ -486,8 +636,14 @@ def main():
                                 with tab:
                                     if "error" in analysis:
                                         st.error(f"Error: {analysis['error']}")
+
+
+
                                     elif module_id == 'syntax' :
                                         st.json(analysis["result"])
+
+
+
                                     elif module_id == 'logical':
                                         logical_result = analysis["result"]
                                         
@@ -504,6 +660,20 @@ def main():
                                                 margin-bottom: 15px;
                                             ">
                                                 <strong>Status:</strong> {logical_result["status"]}
+                                            </div>
+                                        """, unsafe_allow_html=True)
+
+
+
+                                        # Output Validation Results
+                                        st.markdown("##### Output Validation")
+                                        st.markdown(f"""
+                                            <div style="
+                                                padding: 10px;
+                                                border-radius: 5px;
+                                                margin-bottom: 10px;
+                                            ">
+                                                <strong>Result:</strong> {logical_result["analysis"].get("output_validation", "N/A")}
                                             </div>
                                         """, unsafe_allow_html=True)
                                         
@@ -609,13 +779,13 @@ def main():
                             st.markdown("**Generated Code:**")
                             st.code(result["generated_code"], language="python")
                             st.markdown("**Actual Output:**")
-                            st.code(result["actual_output"])
+                            st.code(result["expected_output"] if result["expected_output"] != "{}" else logical_result['analysis']['actual_output'])
                         
                         with code_tab2:
                             st.markdown("**Expected Code:**")
                             st.code(result["expected_code"], language="python")
                             st.markdown("**Expected Output:**")
-                            st.code(result["expected_output"])
+                            st.code(result["expected_output"] if result["expected_output"] != "{}" else logical_result['analysis']['actual_output'])
                         
                     
 
