@@ -1,5 +1,5 @@
 
-def is_valid_compile(code: str) -> bool:
+def is_valid_compile(code: str, expected_code: str) -> bool:
 
     try:
         result = compile(code, "<string>", "exec") 
@@ -9,6 +9,7 @@ def is_valid_compile(code: str) -> bool:
             "message": "The given Python code has correct syntax and can be executed without errors.",
             "suggestion": "Proceed with execution."
         }
+        test = compile(expected_code, "<string>", "exec")
     except SyntaxError as e:
         explanation = {
             "status": "Invalid ❌",

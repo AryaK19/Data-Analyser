@@ -80,35 +80,70 @@ def run_test_cases():
                             with st.spinner(f"Running {module['name']} analysis..."):
                                 try:
                                     if module['id'] == 'syntax':
-                                        analysis_result = is_valid_compile(generated_code)
+                                        analysis_result = is_valid_compile(generated_code,test_case["expected_code"])
+                                        st.session_state.analysis_results[test_id][module['id']] = {
+                                            'name': module['name'],
+                                            'result': analysis_result,
+                                            'timestamp': time.time()
+                                        }
+                                        
+                                        # If syntax check fails, stop further analysis
+                                        if analysis_result['status'] == 'Invalid ❌':
+                                            results.append({
+                                                "query": test_case["query"],
+                                                "expected_code": test_case["expected_code"],
+                                                "generated_code": generated_code,
+                                                "expected_output": test_case["expected_output"],
+                                                "actual_output": "Syntax validation failed",
+                                                "status": "error",
+                                                "analysis_results": {
+                                                    'syntax': {
+                                                        'name': module['name'],
+                                                        'result': analysis_result,
+                                                        'timestamp': time.time()
+                                                    }
+                                                }
+                                            })
+                                            break  # Skip other modules
+                                        
                                     elif module['id'] == 'logical':
-                                        analysis_result = is_valid_logic(
-                                            generated_code,
-                                            test_case["expected_code"] if test_case["expected_code"].strip() else None,
-                                            test_case["expected_output"],
-                                            actual_output,
-                                            st.session_state.df
-                                        )
+                                        # Only proceed if syntax check passed
+                                        if 'syntax' in st.session_state.analysis_results[test_id] and \
+                                        st.session_state.analysis_results[test_id]['syntax']['result']['status'] == 'Valid ✅':
+                                            analysis_result = is_valid_logic(
+                                                generated_code,
+                                                test_case["expected_code"] if test_case["expected_code"].strip() else None,
+                                                test_case["expected_output"],
+                                                actual_output,
+                                                st.session_state.df
+                                            )
+                                            st.session_state.analysis_results[test_id][module['id']] = {
+                                                'name': module['name'],
+                                                'result': analysis_result,
+                                                'timestamp': time.time()
+                                            }
+                                        
                                     elif module['id'] == 'efficiency':
-                                        analysis_result = is_efficient(
-                                            generated_code,
-                                            test_case["expected_code"] if test_case["expected_code"].strip() else None,
-                                            st.session_state.df  # Pass the DataFrame
-                                        )
-                                        print(analysis_result)
-                                    
-                                    # Store analysis result
-                                    st.session_state.analysis_results[test_id][module['id']] = {
-                                        'name': module['name'],
-                                        'result': analysis_result,
-                                        'timestamp': time.time()
-                                    }
+                                        # Only proceed if syntax check passed
+                                        if 'syntax' in st.session_state.analysis_results[test_id] and \
+                                        st.session_state.analysis_results[test_id]['syntax']['result']['status'] == 'Valid ✅':
+                                            analysis_result = is_efficient(
+                                                generated_code,
+                                                test_case["expected_code"] if test_case["expected_code"].strip() else None,
+                                                st.session_state.df
+                                            )
+                                            st.session_state.analysis_results[test_id][module['id']] = {
+                                                'name': module['name'],
+                                                'result': analysis_result,
+                                                'timestamp': time.time()
+                                            }
+                                            
                                 except Exception as e:
                                     st.session_state.analysis_results[test_id][module['id']] = {
                                         'name': module['name'],
                                         'error': str(e),
                                         'timestamp': time.time()
-                                }
+                                    }
                     
                     # Execute generated code
                     
@@ -395,14 +430,24 @@ def calculate_overall_score(analysis_results: dict) -> dict:
     Calculate overall test case score based on all analysis module results,
     with output validation as a critical factor
     """
+
+
+    if 'syntax' not in analysis_results or \
+       analysis_results['syntax']['result']['status'] == 'Invalid ❌':
+        return {
+            "passed": False,
+            "score": 0.0,
+            "module_scores": {'syntax': 0},
+            "grade": "F"
+        }
     total_score = 0
     max_score = 0
     
     # Updated weights to include output validation importance
     analysis_weights = {
-        'syntax': 0.2,     # 20% weight for syntax
-        'logical': 0.3,    # 30% weight for logical correctness
-        'efficiency': 0.2, # 20% weight for efficiency
+        'syntax': 0.3,
+        'logical': 0.4,
+        'efficiency': 0.3, 
     }
     
     module_scores = {}
@@ -451,6 +496,9 @@ def calculate_overall_score(analysis_results: dict) -> dict:
     
     # Calculate final percentage
     final_score = (total_score / max_score * 100) if max_score > 0 else 0
+
+    if final_score >100:
+        final_score = 100
     
     # Determine if passed based on both final score and output validation
     passed = final_score >= 70 and module_scores.get('output', 0) > 0
