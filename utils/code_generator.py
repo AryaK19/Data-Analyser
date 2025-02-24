@@ -116,6 +116,5 @@ def generate_pandas_code(question, df, include_viz=True, context=None):
     )
 
     cleaned_code = clean_code(response.text.strip())
-    print(str(cleaned_code))
     # Clean up the generated code
     return cleaned_code

@@ -106,11 +106,9 @@ def validate_output(expected_output, generated_output, expected_code, generated_
             return ("Correct ✅" if is_matching else "Incorrect ❌", expected_fig)
             
         except Exception as e:
-            print(f"Error comparing figures: {str(e)}")
             return (f"Error comparing figures: {str(e)}", str(e))
     
     else:
-        print(f"Unsupported output type: {type(generated_output)}")
         return ("Unsupported output format", generated_output)
 
 def validate_code(expected_code, generated_code):
@@ -186,13 +184,11 @@ def validate_code(expected_code, generated_code):
         return result
         
     except json.JSONDecodeError as e:
-        print(f"JSON Parse Error: {str(e)}\nRaw Response: {response.text}")
         return {
             "message": "Error ❌",
             "reason": "Failed to parse Gemini AI response as JSON"
         }
     except Exception as e:
-        print(f"Unexpected Error: {str(e)}\nRaw Response: {response.text}")
         return {
             "message": "Error ❌",
             "reason": f"Error processing Gemini AI response: {str(e)}"

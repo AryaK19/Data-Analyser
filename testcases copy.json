@@ -1,0 +1,19 @@
+{
+    "test_cases": [
+        {
+            "query": "how may rows in total?",
+            "expected_code": "import pandas as pd\nresult = len(df)",
+            "expected_output": "100"
+        },
+        {
+            "query": "Count number of employees by department",
+            "expected_code": "import pandas as pd\nresult = df.groupby('Department')['Employees'].sum()",
+            "expected_output": "{}"
+        },
+        {
+            "query": "plot a bar graph on x='Department', y='Budget_Allocated'",
+            "expected_code": "import pandas as pd\nfrom utils.visualization import create_plot\n\nresult = create_plot('bar', data=df, x='Department', y='Budget_Allocated', title='Budget Allocation by Department')",
+            "expected_output": "{}"
+        }
+    ]
+}

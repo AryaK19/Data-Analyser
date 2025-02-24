@@ -14,6 +14,7 @@ import spacy
 import streamlit as st
 import subprocess
 import sys
+import os
 
 from LLMAnalyser.PDFGenerator import generate_pdf_report
 import base64
@@ -35,6 +36,8 @@ def init_session_state():
         st.session_state.clear_uploader = False
     if "analysis_results" not in st.session_state:
         st.session_state.analysis_results = {}
+    if "generating_pdf" not in st.session_state:
+        st.session_state.generating_pdf = False
 
 def init_test_cases():
     """Initialize test cases in session state if not present"""
@@ -659,14 +662,41 @@ def main():
                 st.markdown("---")
                 st.markdown("### Download Report")
                 if st.button("Generate PDF Report"):
+                    st.session_state.generating_pdf = True
+                    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\nGENENENENNENNNENENENENNENENNENENE\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+                    st.rerun()
                     
-                    with st.spinner("Generating PDF report..."):
-                        pdf_path = generate_pdf_report(results)
-                        if pdf_path:
-                            st.markdown(get_pdf_download_link(pdf_path), unsafe_allow_html=True)
-                            st.success("Report generated successfully!")
-                        else:
-                            st.error("Failed to generate PDF report")
+                # Add this code after the button
+                if st.session_state.generating_pdf:
+                    try:
+                        st.info("Starting PDF generation...")
+                        
+                        # Ensure results directory exists
+                        results_dir = os.path.join(os.path.dirname(__file__), "results")
+                        os.makedirs(results_dir, exist_ok=True)
+                        
+                        with st.spinner("Generating PDF report..."):
+                            # Add debug logging
+                            st.write("Processing results for PDF generation...")
+                            
+                            # Generate the PDF
+                            pdf_path = generate_pdf_report(results)
+                            
+                            # Check if file was created
+                            if pdf_path and os.path.exists(pdf_path):
+                                st.success("PDF generated successfully!")
+                                st.markdown(get_pdf_download_link(pdf_path), unsafe_allow_html=True)
+                            else:
+                                st.error("Failed to generate PDF - file not created")
+                                
+                    except Exception as e:
+                        st.error(f"Error generating PDF: {str(e)}")
+                        import traceback
+                        st.error(f"Detailed error: {traceback.format_exc()}")
+                    
+                    # Reset the generating flag
+                    st.session_state.generating_pdf = False
+
                 st.markdown("---")
 
 
