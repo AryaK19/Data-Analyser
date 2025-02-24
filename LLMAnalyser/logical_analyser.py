@@ -7,13 +7,24 @@ from scipy.spatial.distance import cosine
 import google.generativeai as genai
 import json
 import warnings
-nlp = spacy.load("en_core_web_sm")
 from dotenv import load_dotenv
 import os
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+import streamlit as st
+import subprocess
+import sys
+
+def download_spacy_model():
+    try:
+        nlp = spacy.load('en_core_web_sm')
+    except OSError:
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load('en_core_web_sm')
+    return nlp
+nlp = download_spacy_model()
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
