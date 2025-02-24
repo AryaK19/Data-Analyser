@@ -10,9 +10,22 @@ from LLMAnalyser.efficiency_analyser import is_efficient
 import time
 from styles.main import get_css
 import json
+import spacy
+import streamlit as st
+import subprocess
+import sys
 
 from LLMAnalyser.PDFGenerator import generate_pdf_report
 import base64
+
+def download_spacy_model():
+    try:
+        nlp = spacy.load('en_core_web_sm')
+    except OSError:
+        st.info('Downloading spaCy model... This may take a few minutes.')
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load('en_core_web_sm')
+    return nlp
 
 def init_session_state():
     if "messages" not in st.session_state:
@@ -550,6 +563,8 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    with st.spinner('Setting up language model...'):
+        nlp = download_spacy_model()
 
     st.markdown(get_css(), unsafe_allow_html=True)
     init_session_state()
