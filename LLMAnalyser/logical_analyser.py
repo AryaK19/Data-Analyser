@@ -282,8 +282,8 @@ def is_valid_logic(generated_code: str,
         # Weight each metric based on importance
         weights = {
             "Levenshtein Distance": 0.2,
-            "BLEU Score (spaCy)": 0.3,
-            "Cosine Similarity": 0.5
+            "BLEU Score (spaCy)": 0.4,
+            "Cosine Similarity": 0.4
         }
 
         # Normalize Levenshtein distance (lower is better)
