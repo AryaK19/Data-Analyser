@@ -480,7 +480,6 @@ def calculate_overall_score(analysis_results: dict) -> dict:
             
         elif module_id == 'logical':
             # Get output validation result
-            print("ajsdhkajshdjlkasd",result)
             output_validation = result['analysis'].get('output_validation', 'N/A')
             output_score = 100 if output_validation == 'Correct ✅' else 0
             module_scores['output'] = output_score 
@@ -749,174 +748,177 @@ def main():
                                 """, unsafe_allow_html=True)
 
                             st.markdown("##### Module Analysis Results")
-                            tabs = st.tabs([analysis['name'] for analysis in result["analysis_results"].values()])
+                            if result["analysis_results"]:
+                                tab_labels = [analysis['name'] for analysis in result["analysis_results"].values()]
+                                if tab_labels:  # Check if we have any labels
+                                    tabs = st.tabs(tab_labels)
                             
-                            for tab, (module_id, analysis) in zip(tabs, result["analysis_results"].items()):
-                                with tab:
-                                    if "error" in analysis:
-                                        st.error(f"Error: {analysis['error']}")
+                                    for tab, (module_id, analysis) in zip(tabs, result["analysis_results"].items()):
+                                        with tab:
+                                            if "error" in analysis:
+                                                st.error(f"Error: {analysis['error']}")
 
 
 
-                                    elif module_id == 'syntax':
-                                        # Get the result values
-                                        status = analysis["result"]["status"]
-                                        message = analysis["result"]["message"]
-                                        suggestion = analysis["result"]["suggestion"]
-                                        
-                                        # Determine status color
-                                        status_color = "#00ff00" if status == "Valid ✅" else "#ff0000"
-                                        
-                                        # Display in a clean UI format
-                                        st.markdown(f"""
-                                            <div style="
-                                                padding: 15px;
-                                                border-radius: 8px;
-                                                background-color: {status_color}11;
-                                                border: 1px solid {status_color};
-                                                margin-bottom: 15px;
-                                            ">
-                                                <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
-                                                    {status}
-                                                </div>
-                                                <div style="margin-bottom: 5px;">
-                                                    {message}
-                                                </div>
-                                                <div style="font-size: 0.9em; opacity: 0.8;">
-                                                    {suggestion}
-                                                </div>
-                                            </div>
-                                        """, unsafe_allow_html=True)
+                                            elif module_id == 'syntax':
+                                                # Get the result values
+                                                status = analysis["result"]["status"]
+                                                message = analysis["result"]["message"]
+                                                suggestion = analysis["result"]["suggestion"]
+                                                
+                                                # Determine status color
+                                                status_color = "#00ff00" if status == "Valid ✅" else "#ff0000"
+                                                
+                                                # Display in a clean UI format
+                                                st.markdown(f"""
+                                                    <div style="
+                                                        padding: 15px;
+                                                        border-radius: 8px;
+                                                        background-color: {status_color}11;
+                                                        border: 1px solid {status_color};
+                                                        margin-bottom: 15px;
+                                                    ">
+                                                        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
+                                                            {status}
+                                                        </div>
+                                                        <div style="margin-bottom: 5px;">
+                                                            {message}
+                                                        </div>
+                                                        <div style="font-size: 0.9em; opacity: 0.8;">
+                                                            {suggestion}
+                                                        </div>
+                                                    </div>
+                                                """, unsafe_allow_html=True)
 
 
 
-                                    elif module_id == 'logical':
-                                        logical_result = analysis["result"]
-                                        
-                                        # Display overall status with appropriate color
-                                        status_color = "#00ff00" if logical_result["status"] == "Valid ✅" else (
-                                            "#ffa500" if logical_result["status"] == "Warning ⚠️" else "#ff0000"
-                                        )
-                                        st.markdown(f"""
-                                            <div style="
-                                                padding: 10px;
-                                                border-radius: 5px;
-                                                border-left: 5px solid {status_color};
-                                                background-color: {status_color}11;
-                                                margin-bottom: 15px;
-                                            ">
-                                                <strong>Status:</strong> {logical_result["status"]}
-                                            </div>
-                                        """, unsafe_allow_html=True)
+                                            elif module_id == 'logical':
+                                                logical_result = analysis["result"]
+                                                
+                                                # Display overall status with appropriate color
+                                                status_color = "#00ff00" if logical_result["status"] == "Valid ✅" else (
+                                                    "#ffa500" if logical_result["status"] == "Warning ⚠️" else "#ff0000"
+                                                )
+                                                st.markdown(f"""
+                                                    <div style="
+                                                        padding: 10px;
+                                                        border-radius: 5px;
+                                                        border-left: 5px solid {status_color};
+                                                        background-color: {status_color}11;
+                                                        margin-bottom: 15px;
+                                                    ">
+                                                        <strong>Status:</strong> {logical_result["status"]}
+                                                    </div>
+                                                """, unsafe_allow_html=True)
 
 
 
-                                        # Output Validation Results
-                                        st.markdown("##### Output Validation")
-                                        st.markdown(f"""
-                                            <div style="
-                                                padding: 10px;
-                                                border-radius: 5px;
-                                                margin-bottom: 10px;
-                                            ">
-                                                <strong>Result:</strong> {logical_result["analysis"].get("output_validation", "N/A")}
-                                            </div>
-                                        """, unsafe_allow_html=True)
-                                        
-                                        # AI Validation Results
-                                        st.markdown("##### AI Validation")
-                                        ai_validation = logical_result["analysis"]["ai_validation"]
-                                        message_color = "#00ff00" if ai_validation["message"].startswith("Correct") else "#ff0000"
-                                        st.markdown(f"""
-                                            <div style="
-                                                padding: 10px;
-                                                border-radius: 5px;
-                                                background-color: {message_color}11;
-                                                margin-bottom: 10px;
-                                            ">
-                                                <strong>{ai_validation["message"]}</strong><br>
-                                                {ai_validation["reason"]}
-                                            </div>
-                                        """, unsafe_allow_html=True)
-                                        
-                                        # Similarity Analysis
-                                        st.markdown("##### Similarity Analysis")
-                                        similarity = logical_result["analysis"]["similarity_analysis"]
-                                        
-                                        # Display overall similarity
-                                        st.info(f"Overall Similarity: {similarity['overall_similarity']}")
-                                        
-                                        # Display metrics in columns
-                                        metric_cols = st.columns(3)
-                                        metrics = similarity["metrics"]
-                                        
-                                        with metric_cols[0]:
-                                            st.metric(
-                                                "Levenshtein Distance",
-                                                f"{metrics['Levenshtein Distance']:.2f}",
-                                                help="Edit distance between codes (lower is better)"
-                                            )
-                                        
-                                        with metric_cols[1]:
-                                            st.metric(
-                                                "BLEU Score",
-                                                f"{metrics['BLEU Score (spaCy)']:.2f}",
-                                                help="Text similarity score (higher is better)"
-                                            )
-                                        
-                                        with metric_cols[2]:
-                                            st.metric(
-                                                "Cosine Similarity",
-                                                f"{metrics['Cosine Similarity']:.2f}",
-                                                help="Vector similarity (higher is better)"
-                                            )
-                                        
-                                        # Display suggestions
-                                        if logical_result["suggestions"]:
-                                            st.markdown("##### Suggestions")
-                                            for suggestion in logical_result["suggestions"]:
-                                                if suggestion == "Code logic appears correct":
-                                                    st.success(suggestion)
-                                                else:
-                                                    st.warning(suggestion)
-                                    elif module_id == 'efficiency':
-                                        efficiency_result = analysis["result"]
-                                        
-                    
-                                        # Display time complexity
-                                        st.markdown("**Time Complexity Analysis:**")
-                                        col1, col2 = st.columns(2)
-                                        with col1:
-                                            st.info(f"Generated Code: {efficiency_result['generated_code']['time_complexity']}")
-                                        with col2:
-                                            if 'test_code' in efficiency_result:
-                                                st.info(f"Expected Code: {efficiency_result['test_code']['time_complexity']}")
-                                        
-                                        # Display execution metrics
-                                        st.markdown("**Performance Metrics:**")
-                                        metrics = st.columns(3)
-                                        with metrics[0]:
-                                            st.metric(
-                                                "Operation Count", 
-                                                efficiency_result['generated_code']['operation_count']
-                                            )
-                                        with metrics[1]:
-                                            st.metric(
-                                                "Execution Time", 
-                                                efficiency_result['generated_code']['execution_time']
-                                            )
-                                        with metrics[2]:
-                                            st.metric(
-                                                "Memory Usage", 
-                                                efficiency_result['generated_code']['memory_usage']
-                                            )
-                                        
-                                        # Display comparison notes
-                                        if efficiency_result["comparison"]["notes"]:
-                                            st.markdown("**Optimization Notes:**")
-                                            for note in efficiency_result["comparison"]["notes"]:
-                                                st.warning(note)
-                        
+                                                # Output Validation Results
+                                                st.markdown("##### Output Validation")
+                                                st.markdown(f"""
+                                                    <div style="
+                                                        padding: 10px;
+                                                        border-radius: 5px;
+                                                        margin-bottom: 10px;
+                                                    ">
+                                                        <strong>Result:</strong> {logical_result["analysis"].get("output_validation", "N/A")}
+                                                    </div>
+                                                """, unsafe_allow_html=True)
+                                                
+                                                # AI Validation Results
+                                                st.markdown("##### AI Validation")
+                                                ai_validation = logical_result["analysis"]["ai_validation"]
+                                                message_color = "#00ff00" if ai_validation["message"].startswith("Correct") else "#ff0000"
+                                                st.markdown(f"""
+                                                    <div style="
+                                                        padding: 10px;
+                                                        border-radius: 5px;
+                                                        background-color: {message_color}11;
+                                                        margin-bottom: 10px;
+                                                    ">
+                                                        <strong>{ai_validation["message"]}</strong><br>
+                                                        {ai_validation["reason"]}
+                                                    </div>
+                                                """, unsafe_allow_html=True)
+                                                
+                                                # Similarity Analysis
+                                                st.markdown("##### Similarity Analysis")
+                                                similarity = logical_result["analysis"]["similarity_analysis"]
+                                                
+                                                # Display overall similarity
+                                                st.info(f"Overall Similarity: {similarity['overall_similarity']}")
+                                                
+                                                # Display metrics in columns
+                                                metric_cols = st.columns(3)
+                                                metrics = similarity["metrics"]
+                                                
+                                                with metric_cols[0]:
+                                                    st.metric(
+                                                        "Levenshtein Distance",
+                                                        f"{metrics['Levenshtein Distance']:.2f}",
+                                                        help="Edit distance between codes (lower is better)"
+                                                    )
+                                                
+                                                with metric_cols[1]:
+                                                    st.metric(
+                                                        "BLEU Score",
+                                                        f"{metrics['BLEU Score (spaCy)']:.2f}",
+                                                        help="Text similarity score (higher is better)"
+                                                    )
+                                                
+                                                with metric_cols[2]:
+                                                    st.metric(
+                                                        "Cosine Similarity",
+                                                        f"{metrics['Cosine Similarity']:.2f}",
+                                                        help="Vector similarity (higher is better)"
+                                                    )
+                                                
+                                                # Display suggestions
+                                                if logical_result["suggestions"]:
+                                                    st.markdown("##### Suggestions")
+                                                    for suggestion in logical_result["suggestions"]:
+                                                        if suggestion == "Code logic appears correct":
+                                                            st.success(suggestion)
+                                                        else:
+                                                            st.warning(suggestion)
+                                            elif module_id == 'efficiency':
+                                                efficiency_result = analysis["result"]
+                                                
+                            
+                                                # Display time complexity
+                                                st.markdown("**Time Complexity Analysis:**")
+                                                col1, col2 = st.columns(2)
+                                                with col1:
+                                                    st.info(f"Generated Code: {efficiency_result['generated_code']['time_complexity']}")
+                                                with col2:
+                                                    if 'test_code' in efficiency_result:
+                                                        st.info(f"Expected Code: {efficiency_result['test_code']['time_complexity']}")
+                                                
+                                                # Display execution metrics
+                                                st.markdown("**Performance Metrics:**")
+                                                metrics = st.columns(3)
+                                                with metrics[0]:
+                                                    st.metric(
+                                                        "Operation Count", 
+                                                        efficiency_result['generated_code']['operation_count']
+                                                    )
+                                                with metrics[1]:
+                                                    st.metric(
+                                                        "Execution Time", 
+                                                        efficiency_result['generated_code']['execution_time']
+                                                    )
+                                                with metrics[2]:
+                                                    st.metric(
+                                                        "Memory Usage", 
+                                                        efficiency_result['generated_code']['memory_usage']
+                                                    )
+                                                
+                                                # Display comparison notes
+                                                if efficiency_result["comparison"]["notes"]:
+                                                    st.markdown("**Optimization Notes:**")
+                                                    for note in efficiency_result["comparison"]["notes"]:
+                                                        st.warning(note)
+                                
                         # Code comparison in tabs
                         st.markdown("##### Code & Output")
                         code_tab1, code_tab2 = st.columns([2, 2])

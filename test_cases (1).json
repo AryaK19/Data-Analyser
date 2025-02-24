@@ -1,5 +1,4 @@
-{
-  "test_cases": [
+[
 {
   "query": "How many unique departments are in the dataset?",
   "code":"",
@@ -73,4 +72,4 @@
   "query": "What percentage of total complaints were received by each zone?",
   "code":"",
   "output":""
-}]}
+}]

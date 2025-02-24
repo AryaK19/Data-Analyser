@@ -11,10 +11,54 @@
             "expected_output": "{}"
         },
         {
-            "query": "plot a bar graph on x='Department', y='Budget_Allocated' ",
+            "query": "plot a bar graph on x='Department', y='Budget_Allocated'",
             "expected_code": "import pandas as pd\nfrom utils.visualization import create_plot\n\nresult = create_plot('bar', data=df, x='Department', y='Budget_Allocated', title='Budget Allocation by Department')",
             "expected_output": "{}"
+        },
+        {
+            "query": "What is the average service rating across all departments?",
+            "expected_code": "import pandas as pd\nresult = df['Service_Rating'].mean()",
+            "expected_output": "2.9279999999999995"
+        },
+        {
+            "query": "Calculate complaint resolution rate for each department",
+            "expected_code": "import pandas as pd\nresult = (df['Complaints_Resolved'] / df['Complaints_Received'] * 100).round(2)",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Show departments with more than 2000 employees",
+            "expected_code": "import pandas as pd\nresult = df[df['Employees'] > 2000][['Department', 'Employees']]",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Create a scatter plot of Budget_Allocated vs Employees",
+            "expected_code": "import pandas as pd\nfrom utils.visualization import create_plot\n\nresult = create_plot('scatter', data=df, x='Employees', y='Budget_Allocated', title='Budget vs Employee Count')",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Calculate budget per employee for each department",
+            "expected_code": "import pandas as pd\nresult = (df['Budget_Allocated'] / df['Employees'] * 1000).round(2)",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Which zone has the highest complaint resolution rate?",
+            "expected_code": "import pandas as pd\nresult = df.groupby('Zone')['Complaints_Resolved'].sum() / df.groupby('Zone')['Complaints_Received'].sum() * 100",
+            "expected_output": "0.65"
+        },
+        {
+            "query": "Show departments with service rating below 3.0",
+            "expected_code": "import pandas as pd\nresult = df[df['Service_Rating'] < 3.0][['Department', 'Service_Rating']].sort_values('Service_Rating')",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Create a pie chart of total employees by zone",
+            "expected_code": "import pandas as pd\nfrom utils.visualization import create_plot\nresult = create_plot('pie', data=df, x='Zone', title='Total Employees by Zone')",
+            "expected_output": "{}"
+        },
+        {
+            "query": "Find correlation between Budget_Allocated and Service_Rating",
+            "expected_code": "import pandas as pd\nresult = df['Budget_Allocated'].corr(df['Service_Rating'])",
+            "expected_output": "-0.04"
         }
-
     ]
 }

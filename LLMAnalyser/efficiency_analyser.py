@@ -124,70 +124,94 @@ def is_efficient(generated_code: str, test_code: str = None, df: pd.DataFrame = 
     Analyze and compare efficiency of generated code vs test code
     Returns dictionary with analysis results
     """
+    # Define default response structure
+    default_metrics = {
+        "time_complexity": "N/A",
+        "execution_time": "N/A",
+        "memory_usage": "N/A",
+        "operation_count": 0
+    }
+    
+    error_response = {
+        "generated_code": default_metrics.copy(),
+        "test_code": default_metrics.copy(),
+        "comparison": {
+            "is_efficient": False,
+            "notes": []
+        }
+    }
+    
     try:
         if df is None:
-            raise ValueError("DataFrame is required for efficiency analysis")
+            error_response["error"] = "DataFrame is required for efficiency analysis"
+            return error_response
 
         # Parse AST for generated code
-        generated_ast = ast.parse(generated_code)
-        generated_ops = count_operations(generated_ast)
-        generated_complexity = estimate_complexity(generated_ops)
-        
-        # Measure execution metrics for generated code
-        generated_time = measure_execution_time(generated_code, df)
-        generated_memory = measure_memory_usage(generated_code, df)
-        
-        results = {
-            "generated_code": {
-                "time_complexity": generated_complexity,
-                "execution_time": f"{generated_time:.6f} sec",
-                "memory_usage": f"{generated_memory / 1024:.2f} KB",
-                "operation_count": generated_ops
-            },
-            "comparison": {
-                "is_efficient": True,
-                "notes": []
+        try:
+            generated_ast = ast.parse(generated_code)
+            generated_ops = count_operations(generated_ast)
+            generated_complexity = estimate_complexity(generated_ops)
+            generated_time = measure_execution_time(generated_code, df)
+            generated_memory = measure_memory_usage(generated_code, df)
+            
+            results = {
+                "generated_code": {
+                    "time_complexity": generated_complexity,
+                    "execution_time": f"{generated_time:.6f} sec",
+                    "memory_usage": f"{generated_memory / 1024:.2f} KB",
+                    "operation_count": generated_ops
+                },
+                "comparison": {
+                    "is_efficient": True,
+                    "notes": []
+                }
             }
-        }
+        except Exception as e:
+            error_response["error"] = f"Error analyzing generated code: {str(e)}"
+            error_response["traceback"] = traceback.format_exc()
+            return error_response
         
         # Compare with test code if provided
         if test_code:
-            test_ast = ast.parse(test_code)
-            test_ops = count_operations(test_ast)
-            test_complexity = estimate_complexity(test_ops)
-            test_time = measure_execution_time(test_code, df)
-            test_memory = measure_memory_usage(test_code, df)
-            
-            results["test_code"] = {
-                "time_complexity": test_complexity,
-                "execution_time": f"{test_time:.6f} seconds",
-                "memory_usage": f"{test_memory / 1024:.2f} KB",
-                "operation_count": test_ops
-            }
-            
-            # Compare and add notes
-            if generated_ops > test_ops*2 :
-                results["comparison"]["is_efficient"] = False
-                results["comparison"]["notes"].append(
-                    "Generated code has significantly more operations"
-                )
-            
-            if generated_time > test_time*2 :
-                results["comparison"]["is_efficient"] = False
-                results["comparison"]["notes"].append(
-                    "Generated code is significantly slower"
-                )
-            
-            if generated_memory > test_memory*2 :
-                results["comparison"]["is_efficient"] = False
-                results["comparison"]["notes"].append(
-                    "Generated code uses significantly more memory"
-                )
+            try:
+                test_ast = ast.parse(test_code)
+                test_ops = count_operations(test_ast)
+                test_complexity = estimate_complexity(test_ops)
+                test_time = measure_execution_time(test_code, df)
+                test_memory = measure_memory_usage(test_code, df)
+                
+                results["test_code"] = {
+                    "time_complexity": test_complexity,
+                    "execution_time": f"{test_time:.6f} seconds",
+                    "memory_usage": f"{test_memory / 1024:.2f} KB",
+                    "operation_count": test_ops
+                }
+                
+                # Compare and add notes
+                if generated_ops > test_ops*2:
+                    results["comparison"]["is_efficient"] = False
+                    results["comparison"]["notes"].append(
+                        "Generated code has significantly more operations"
+                    )
+                
+                if generated_time > test_time*2:
+                    results["comparison"]["is_efficient"] = False
+                    results["comparison"]["notes"].append(
+                        "Generated code is significantly slower"
+                    )
+                
+                if generated_memory > test_memory*2:
+                    results["comparison"]["is_efficient"] = False
+                    results["comparison"]["notes"].append(
+                        "Generated code uses significantly more memory"
+                    )
+            except Exception as e:
+                results["test_code"] = default_metrics
+                results["comparison"]["notes"].append(f"Error analyzing test code: {str(e)}")
         
         return results
         
     except Exception as e:
-        return {
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
+        error_response["error"] = str(e)
+        error_response["traceback"] = traceback.format_exc()
+        return error_response

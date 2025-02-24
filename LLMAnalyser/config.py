@@ -1,7 +1,7 @@
 AVAILABLE_MODULES = {
     "Syntax Analysis": {
         "id": "syntax",
-        "description": "Analyzes code structure, complexity, and style",
+        "description": "Analyzes code structure and syntax correctness",
         "file": "syntax_analyser.py",
         "icon": "🔍",
         "color": "#FF6B6B"
@@ -19,6 +19,13 @@ AVAILABLE_MODULES = {
         "file": "efficiency_analyser.py",
         "icon": "⚡",
         "color": "#45B7D1"
+    },
+    "Text Ouput Analysis": {
+        "id": "text",
+        "description": "Evaluates text correctness and relevance",
+        "file": "efficiency_analyser.py",
+        "icon": "🖊️",
+        "color": "#f68e08"
     }
 }
 
